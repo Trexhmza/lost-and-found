@@ -58,14 +58,13 @@ serve(async (req) => {
       }
     }
 
-    const imgHash = typeof imageVector === 'string' ? imageVector : null
-    const oppHash = Array.isArray(oppImgVec) ? null : oppImgVec
-
     let imgScore = null
     let txtScore = null
 
-    if (imgHash && oppHash) {
-      imgScore = imgHash === oppHash ? 1.0 : 0.0
+    if (post.image_url && opp.image_url) {
+      const imgHash = typeof imageVector === 'string' ? imageVector : null
+      const oppHash = Array.isArray(oppImgVec) ? null : oppImgVec
+      imgScore = (imgHash && oppHash && imgHash === oppHash) ? 1.0 : 0.30
     }
     if (textVector && oppTxtVec?.length > 100) {
       txtScore = cosineSimilarity(textVector, oppTxtVec)
