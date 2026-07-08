@@ -46,7 +46,7 @@ export default function PostForm({ type, onClose, onSuccess }) {
       imageUrl = data.secure_url || ''
     }
 
-    const { error: dbError } = await supabase.from('posts').insert({
+    const { data: newPost, error: dbError } = await supabase.from('posts').insert({
       user_id: user.id,
       type,
       description,
@@ -54,13 +54,19 @@ export default function PostForm({ type, onClose, onSuccess }) {
       location,
       date,
       image_url: imageUrl
-    })
+    }).select()
 
     setUploading(false)
 
     if (dbError) {
       setError(dbError.message)
       return
+    }
+
+    if (newPost?.[0]?.id) {
+      supabase.functions.invoke('match-items', {
+        body: { postId: newPost[0].id, type }
+      }).catch(() => {})
     }
 
     onSuccess()
