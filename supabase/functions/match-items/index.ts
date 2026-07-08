@@ -104,29 +104,25 @@ serve(async (req) => {
   }
 })
 
-async function getClipVector(imageUrl) {
-  try {
-    const res = await fetch(HF_CLIP_URL, {
-      headers: { 'Authorization': `Bearer ${hfKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ inputs: imageUrl, options: { wait_for_model: true } })
-    })
-    if (!res.ok) return null
-    const data = await res.json()
-    return data[0] || data
-  } catch { return null }
+async function fetchHF(url, body) {
+  for (let i = 0; i < 3; i++) {
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${hfKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...body, options: { wait_for_model: true } })
+      })
+      if (!res.ok) { await delay(1000 * (i + 1)); continue }
+      const data = await res.json()
+      return data[0] || data
+    } catch { await delay(1000 * (i + 1)) }
+  }
+  return null
 }
 
-async function getMiniLMVector(text) {
-  try {
-    const res = await fetch(HF_MINI_URL, {
-      headers: { 'Authorization': `Bearer ${hfKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ inputs: text, options: { wait_for_model: true } })
-    })
-    if (!res.ok) return null
-    const data = await res.json()
-    return data[0] || data
-  } catch { return null }
-}
+function getClipVector(url) { return fetchHF(HF_CLIP_URL, { inputs: url }) }
+function getMiniLMVector(text) { return fetchHF(HF_MINI_URL, { inputs: text }) }
+function delay(ms) { return new Promise(r => setTimeout(r, ms)) }
 
 function cosineSimilarity(a, b) {
   let dot = 0, na = 0, nb = 0

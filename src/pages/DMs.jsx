@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 
@@ -14,50 +14,19 @@ export default function DMs() {
 
   useEffect(() => {
     loadConversations()
-    const channel = supabase
-      .channel('dm-convs')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => { if (page === 'list') loadConversations() })
-      .subscribe()
-    return () => supabase.removeChannel(channel)
-  }, [page])
-
-  const fetchMessages = useCallback(async () => {
-    if (!selectedConv) return
-    const { data } = await supabase
-      .from('messages')
-      .select('*')
-      .eq('conversation_id', selectedConv.id)
-      .order('created_at', { ascending: true })
-    if (data) {
-      const unreadIds = data.filter(m => m.sender_id !== user.id && m.status === 'sent').map(m => m.id)
-      if (unreadIds.length) {
-        await supabase.from('messages').update({ status: 'delivered' }).in('id', unreadIds)
-      }
-      setMessages(data.map(m => unreadIds.includes(m.id) ? { ...m, status: 'delivered' } : m))
-    }
-  }, [selectedConv, user.id])
+  }, [])
 
   useEffect(() => {
     if (!selectedConv) return
-    fetchMessages()
-    const interval = setInterval(fetchMessages, 3000)
+    loadMessages()
     const channel = supabase
       .channel(`msgs-${selectedConv.id}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${selectedConv.id}` }, (payload) => {
-        setMessages(prev => {
-          if (prev.some(m => m.id === payload.new.id)) return prev
-          if (payload.new.sender_id !== user.id) {
-            supabase.from('messages').update({ status: 'delivered' }).eq('id', payload.new.id).then(fetchMessages)
-          }
-          return [...prev, payload.new]
-        })
-      })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages', filter: `conversation_id=eq.${selectedConv.id}` }, (payload) => {
-        setMessages(prev => prev.map(m => m.id === payload.new.id ? { ...m, ...payload.new } : m))
+        setMessages(prev => prev.some(m => m.id === payload.new.id) ? prev : [...prev, payload.new])
       })
       .subscribe()
-    return () => { supabase.removeChannel(channel); clearInterval(interval) }
-  }, [selectedConv?.id, fetchMessages])
+    return () => supabase.removeChannel(channel)
+  }, [selectedConv?.id])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -73,6 +42,16 @@ export default function DMs() {
     setLoading(false)
   }
 
+  async function loadMessages() {
+    if (!selectedConv) return
+    const { data } = await supabase
+      .from('messages')
+      .select('*')
+      .eq('conversation_id', selectedConv.id)
+      .order('created_at', { ascending: true })
+    if (data) setMessages(data)
+  }
+
   async function openConversation(conv) {
     setSelectedConv(conv)
     setPage('chat')
@@ -83,23 +62,10 @@ export default function DMs() {
     const { data } = await supabase.from('messages').insert({
       conversation_id: selectedConv.id,
       sender_id: user.id,
-      content: newMsg,
-      status: 'sent'
+      content: newMsg
     }).select().single()
     setNewMsg('')
     if (data) setMessages(prev => [...prev, data])
-  }
-
-  function markAsRead(msgId) {
-    supabase.from('messages').update({ status: 'read' }).eq('id', msgId).then(() => {
-      setMessages(prev => prev.map(m => m.id === msgId ? { ...m, status: 'read' } : m))
-    })
-  }
-
-  function statusIcon(m) {
-    if (m.sender_id !== user.id) return null
-    if (m.status === 'read' || m.status === 'delivered') return <span className="text-[10px] text-blue-500 ml-1">✓✓</span>
-    return <span className="text-[10px] text-gray-400 ml-1">✓</span>
   }
 
   function otherUser(conv) {
@@ -119,16 +85,11 @@ export default function DMs() {
             <span className="font-semibold text-sm">{other?.name}</span>
           </div>
 
-          <div className="h-80 overflow-y-auto mb-4 space-y-2" onMouseEnter={() => {
-            const unseen = messages.filter(m => m.sender_id !== user.id && m.status !== 'read')
-            unseen.forEach(m => markAsRead(m.id))
-          }}>
+          <div className="h-80 overflow-y-auto mb-4 space-y-2">
             {messages.map(m => (
-              <div key={m.id} className={`flex ${m.sender_id === user.id ? 'justify-end' : 'justify-start'}`}
-                onMouseEnter={() => { if (m.sender_id !== user.id && m.status !== 'read') markAsRead(m.id) }}>
+              <div key={m.id} className={`flex ${m.sender_id === user.id ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[70%] px-3 py-2 rounded-lg text-sm ${m.sender_id === user.id ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-800'}`}>
                   {m.content}
-                  {m.sender_id === user.id && <span className="inline-flex items-center">{statusIcon(m)}</span>}
                 </div>
               </div>
             ))}
