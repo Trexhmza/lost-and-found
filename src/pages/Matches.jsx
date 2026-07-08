@@ -8,7 +8,7 @@ export default function Matches() {
   const navigate = useNavigate()
   const [matches, setMatches] = useState([])
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState('pending')
+  const [filter, setFilter] = useState('all')
 
   useEffect(() => { loadMatches() }, [])
 

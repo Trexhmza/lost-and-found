@@ -12,12 +12,22 @@ serve(async (req) => {
   try {
     const body = await req.json()
 
+    if (body.check) {
+      const { data } = await supabase.from('matches').select('*, lost:lost_post_id(*), found:found_post_id(*)')
+      return new Response(JSON.stringify({ matches: data || [] }), { headers: { 'Content-Type': 'application/json' } })
+    }
+
     if (body.clear) {
       await supabase.from('matches').delete().neq('id', '00000000-0000-0000-0000-000000000000')
       await supabase.from('messages').delete().neq('id', '00000000-0000-0000-0000-000000000000')
       await supabase.from('conversations').delete().neq('id', '00000000-0000-0000-0000-000000000000')
       await supabase.from('posts').delete().neq('id', '00000000-0000-0000-0000-000000000000')
       return new Response(JSON.stringify({ cleared: true }), { headers: { 'Content-Type': 'application/json' } })
+    }
+
+    if (body.check) {
+      const { data } = await supabase.from('matches').select('*, lost:lost_post_id(*), found:found_post_id(*)')
+      return new Response(JSON.stringify({ matches: data || [] }), { headers: { 'Content-Type': 'application/json' } })
     }
 
     const { postId, type } = body
@@ -35,7 +45,7 @@ serve(async (req) => {
       .eq('status', 'active')
       .neq('user_id', post.user_id)
 
-    if (!opposites?.length) return new Response('No items to match', { status: 200 })
+    if (!opposites?.length) return new Response(JSON.stringify({ matched: 0, matches: [] }), { headers: { 'Content-Type': 'application/json' } })
 
     const matches = []
     for (const opp of opposites) {
@@ -50,7 +60,8 @@ serve(async (req) => {
     }
 
     if (matches.length > 0) {
-      await supabase.from('matches').upsert(matches, { onConflict: 'lost_post_id,found_post_id' })
+      const { error: upsertErr } = await supabase.from('matches').upsert(matches, { onConflict: 'lost_post_id,found_post_id' })
+      if (upsertErr) throw new Error(`Upsert failed: ${upsertErr.message}`)
     }
 
     return new Response(JSON.stringify({ matched: matches.length }), {
