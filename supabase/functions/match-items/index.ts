@@ -41,26 +41,47 @@ serve(async (req) => {
 
   const matches = []
   for (const opp of opposites) {
+    let oppImgVec = opp.image_vector
+    let oppTxtVec = opp.text_vector
+
+    if (!oppTxtVec && textVector) {
+      oppTxtVec = await getMiniLMVector(opp.description)
+      if (oppTxtVec) {
+        await supabase.from('posts').update({ text_vector: arrayToPgVector(oppTxtVec) }).eq('id', opp.id)
+      }
+    }
+    if (!oppImgVec && imageVector && opp.image_url) {
+      oppImgVec = await getClipVector(opp.image_url)
+      if (oppImgVec) {
+        await supabase.from('posts').update({ image_vector: arrayToPgVector(oppImgVec) }).eq('id', opp.id)
+      }
+    }
+
     let imgScore = null
     let txtScore = null
 
-    if (imageVector && opp.image_vector) {
-      imgScore = cosineSimilarity(imageVector, opp.image_vector)
+    if (imageVector && oppImgVec?.length > 100) {
+      imgScore = cosineSimilarity(imageVector, oppImgVec)
     }
-    if (textVector && opp.text_vector) {
-      txtScore = cosineSimilarity(textVector, opp.text_vector)
+    if (textVector && oppTxtVec?.length > 100) {
+      txtScore = cosineSimilarity(textVector, oppTxtVec)
     }
 
     let final = combineScores(imgScore, txtScore, type === 'lost')
+
+    if (imgScore === null && txtScore === null) {
+      final = keywordScore(post.description, opp.description)
+    }
+
     let llmAdjust = 0
 
-    if (final >= 0.30 && final <= 0.60) {
+    if (final >= 0.20 && final <= 0.60) {
       llmAdjust = await groqRerank(post.description, opp.description, imgScore, txtScore)
     }
 
     final = Math.min(1, Math.max(0, final + llmAdjust))
 
-    if (final >= 0.50) {
+    if (final >= 0.20) {
       matches.push({
         [type === 'lost' ? 'lost_post_id' : 'found_post_id']: postId,
         [type === 'lost' ? 'found_post_id' : 'lost_post_id']: opp.id,
@@ -142,6 +163,18 @@ async function groqRerank(descA, descB, imgScore, txtScore) {
     const val = parseFloat(data?.choices?.[0]?.message?.content)
     return isNaN(val) ? 0 : val / 100
   } catch { return 0 }
+}
+
+function keywordScore(a, b) {
+  const wordsA = a.toLowerCase().split(/\W+/).filter(Boolean)
+  const wordsB = b.toLowerCase().split(/\W+/).filter(Boolean)
+  if (!wordsA.length || !wordsB.length) return 0
+  const setA = new Set(wordsA)
+  const setB = new Set(wordsB)
+  let intersect = 0
+  for (const w of setA) { if (setB.has(w)) intersect++ }
+  const union = new Set([...setA, ...setB]).size
+  return intersect / union
 }
 
 function arrayToPgVector(arr) {

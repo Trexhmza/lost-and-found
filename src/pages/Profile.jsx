@@ -26,6 +26,7 @@ export default function Profile() {
       .from('posts')
       .select('*')
       .eq('user_id', user.id)
+      .eq('status', 'active')
       .order('created_at', { ascending: false })
     if (data) setMyPosts(data)
   }
@@ -55,7 +56,7 @@ export default function Profile() {
   }
 
   async function deletePost(postId) {
-    await supabase.from('posts').update({ status: 'resolved' }).eq('id', postId)
+    await supabase.from('posts').delete().eq('id', postId)
     loadMyPosts()
   }
 
@@ -92,10 +93,7 @@ export default function Profile() {
               </span>
               <p className="text-sm text-gray-700 mt-1 line-clamp-1">{post.description}</p>
             </div>
-            {post.status === 'active' && (
-              <button onClick={() => deletePost(post.id)} className="text-xs text-red-600 hover:underline cursor-pointer">Delete</button>
-            )}
-            {post.status === 'resolved' && <span className="text-xs text-gray-400">Resolved</span>}
+            <button onClick={() => deletePost(post.id)} className="text-xs text-red-600 hover:underline cursor-pointer">Delete</button>
           </div>
         ))
       )}
