@@ -74,9 +74,10 @@ export default function PostForm({ type, onClose, onSuccess, editPost }) {
     }
 
     if (newPost?.[0]?.id) {
-      supabase.functions.invoke('match-items', {
+      const { error: fnErr } = await supabase.functions.invoke('match-items', {
         body: { postId: newPost[0].id, type }
-      }).catch(err => console.error('Match error:', err))
+      })
+      if (fnErr) console.error('Match invoke error:', fnErr)
     }
 
     onSuccess()

@@ -26,10 +26,12 @@ serve(async (req) => {
   const imageVector = post.image_url ? await getClipVector(post.image_url) : null
   const textVector = await getMiniLMVector(post.description)
 
-  await supabase.from('posts').update({
-    image_vector: imageVector ? arrayToPgVector(imageVector) : null,
-    text_vector: arrayToPgVector(textVector)
-  }).eq('id', postId)
+  if (textVector) {
+    await supabase.from('posts').update({
+      image_vector: imageVector ? arrayToPgVector(imageVector) : null,
+      text_vector: arrayToPgVector(textVector)
+    }).eq('id', postId)
+  }
 
   const oppositeType = type === 'lost' ? 'found' : 'lost'
   const { data: opposites } = await supabase
@@ -107,7 +109,6 @@ serve(async (req) => {
 async function getClipVector(imageUrl) {
   try {
     const res = await fetch(HF_CLIP_URL, {
-      method: 'POST',
       headers: { 'Authorization': `Bearer ${hfKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ inputs: imageUrl, options: { wait_for_model: true } })
     })
@@ -120,14 +121,13 @@ async function getClipVector(imageUrl) {
 async function getMiniLMVector(text) {
   try {
     const res = await fetch(HF_MINI_URL, {
-      method: 'POST',
       headers: { 'Authorization': `Bearer ${hfKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ inputs: text, options: { wait_for_model: true } })
     })
-    if (!res.ok) return [0]
+    if (!res.ok) return null
     const data = await res.json()
     return data[0] || data
-  } catch { return [0] }
+  } catch { return null }
 }
 
 function cosineSimilarity(a, b) {
