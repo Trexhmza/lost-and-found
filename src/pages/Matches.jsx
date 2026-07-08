@@ -70,10 +70,12 @@ export default function Matches() {
     const { data: existing } = await supabase
       .from('conversations')
       .select('id')
-      .or(`and(user1_id.eq.${user.id},user2_id.eq.${otherUserId}),and(user1_id.eq.${otherUserId},user2_id.eq.${user.id})`)
+      .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`)
+      .or(`user1_id.eq.${otherUserId},user2_id.eq.${otherUserId}`)
       .maybeSingle()
     if (existing) { navigate('/dms'); return }
-    await supabase.from('conversations').insert({ user1_id: user.id, user2_id: otherUserId })
+    const { error } = await supabase.from('conversations').insert({ user1_id: user.id, user2_id: otherUserId })
+    if (error) console.error('Create conv error:', error)
     navigate('/dms')
   }
 

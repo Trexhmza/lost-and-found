@@ -108,8 +108,8 @@ export default function DMs() {
 
   function statusIcon(m) {
     if (m.sender_id !== user.id) return null
-    if (m.status === 'read') return <span className="text-[10px] text-blue-400 ml-1">✓✓</span>
-    if (m.status === 'delivered') return <span className="text-[10px] text-gray-400 ml-1">✓✓</span>
+    if (m.status === 'read') return <span className="text-[10px] text-blue-500 ml-1">✓✓</span>
+    if (m.status === 'delivered') return <span className="text-[10px] text-blue-500 ml-1">✓✓</span>
     return <span className="text-[10px] text-gray-400 ml-1">✓</span>
   }
 

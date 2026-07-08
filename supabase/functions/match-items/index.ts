@@ -26,12 +26,10 @@ serve(async (req) => {
   const imageVector = post.image_url ? await getClipVector(post.image_url) : null
   const textVector = await getMiniLMVector(post.description)
 
-  if (textVector) {
-    await supabase.from('posts').update({
-      image_vector: imageVector ? arrayToPgVector(imageVector) : null,
-      text_vector: arrayToPgVector(textVector)
-    }).eq('id', postId)
-  }
+  await supabase.from('posts').update({
+    image_vector: imageVector ? arrayToPgVector(imageVector) : null,
+    text_vector: textVector ? arrayToPgVector(textVector) : null
+  }).eq('id', postId)
 
   const oppositeType = type === 'lost' ? 'found' : 'lost'
   const { data: opposites } = await supabase
