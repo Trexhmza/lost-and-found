@@ -62,16 +62,15 @@ serve(async (req) => {
 })
 
 async function groqMatch(postA, postB) {
-  const content = []
-  content.push({ type: 'text', text: `You are matching lost & found items at a university. Compare these two posts and decide if they are the same item.
+  let prompt = `You are matching lost & found items. Compare these two posts and decide match confidence (0-100).
 
 Post A (${postA.type}): "${postA.description}"
-Post B (${postB.type}): "${postB.description}"` })
+Post B (${postB.type}): "${postB.description}"
 
-  if (postA.image_url) content.push({ type: 'text', text: `Post A image: ${postA.image_url}` })
-  if (postB.image_url) content.push({ type: 'text', text: `Post B image: ${postB.image_url}` })
-
-  content.push({ type: 'text', text: `Return ONLY a number 0-100 indicating match confidence. 0 = completely different, 100 = definitely the same item. Just the number, nothing else.` })
+`
+  if (postA.image_url) prompt += `Post A image URL: ${postA.image_url}\n`
+  if (postB.image_url) prompt += `Post B image URL: ${postB.image_url}\n`
+  prompt += `Return ONLY a number 0-100. 0 = completely different, 100 = definitely the same item. Just the number.`
 
   for (let i = 0; i < 3; i++) {
     try {
@@ -79,13 +78,13 @@ Post B (${postB.type}): "${postB.description}"` })
         method: 'POST',
         headers: { 'Authorization': `Bearer ${groqKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'llama-3.2-90b-vision-preview',
-          messages: [{ role: 'user', content }],
+          model: 'llama-3.1-8b-instant',
+          messages: [{ role: 'user', content: prompt }],
           temperature: 0.1,
           max_tokens: 5
         })
       })
-      if (!res.ok) { await delay(1000 * (i + 1)); continue }
+      if (!res.ok) throw new Error(`Groq ${res.status}: ${await res.text()}`)
       const data = await res.json()
       const val = parseInt(data?.choices?.[0]?.message?.content)
       if (!isNaN(val) && val >= 0 && val <= 100) return val
