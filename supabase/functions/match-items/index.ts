@@ -8,7 +8,6 @@ const groqKey = Deno.env.get('GROQ_API_KEY')!
 
 const supabase = createClient(supabaseUrl, supabaseKey)
 
-const HF_CLIP_URL = 'https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/clip-ViT-B-32'
 const HF_MINI_URL = 'https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/all-MiniLM-L6-v2'
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
 
@@ -23,11 +22,11 @@ serve(async (req) => {
       .from('posts').select('*').eq('id', postId).single()
     if (postErr || !post) return new Response('Post not found', { status: 404 })
 
-  const imageVector = post.image_url ? await getClipVector(post.image_url) : null
+  const imageVector = post.image_url ? await getImageHash(post.image_url) : null
   const textVector = await getMiniLMVector(post.description)
 
   await supabase.from('posts').update({
-    image_vector: imageVector ? arrayToPgVector(imageVector) : null,
+    image_vector: imageVector ? arrayToPgVector([parseInt(imageVector.slice(0, 8), 16) / 0xFFFFFFFF]) : null,
     text_vector: textVector ? arrayToPgVector(textVector) : null
   }).eq('id', postId)
 
@@ -52,18 +51,21 @@ serve(async (req) => {
         await supabase.from('posts').update({ text_vector: arrayToPgVector(oppTxtVec) }).eq('id', opp.id)
       }
     }
-    if (!oppImgVec && imageVector && opp.image_url) {
-      oppImgVec = await getClipVector(opp.image_url)
+    if ((!oppImgVec || Array.isArray(oppImgVec)) && imageVector && opp.image_url) {
+      oppImgVec = await getImageHash(opp.image_url)
       if (oppImgVec) {
-        await supabase.from('posts').update({ image_vector: arrayToPgVector(oppImgVec) }).eq('id', opp.id)
+        await supabase.from('posts').update({ image_vector: arrayToPgVector([parseInt(oppImgVec.slice(0, 8), 16) / 0xFFFFFFFF]) }).eq('id', opp.id)
       }
     }
+
+    const imgHash = typeof imageVector === 'string' ? imageVector : null
+    const oppHash = Array.isArray(oppImgVec) ? null : oppImgVec
 
     let imgScore = null
     let txtScore = null
 
-    if (imageVector && oppImgVec?.length > 100) {
-      imgScore = cosineSimilarity(imageVector, oppImgVec)
+    if (imgHash && oppHash) {
+      imgScore = imgHash === oppHash ? 1.0 : 0.0
     }
     if (textVector && oppTxtVec?.length > 100) {
       txtScore = cosineSimilarity(textVector, oppTxtVec)
@@ -104,13 +106,27 @@ serve(async (req) => {
   }
 })
 
-async function fetchHF(url, body) {
+async function getImageHash(imageUrl) {
   for (let i = 0; i < 3; i++) {
     try {
-      const res = await fetch(url, {
+      const imgRes = await fetch(imageUrl)
+      if (!imgRes.ok) { await delay(1000 * (i + 1)); continue }
+      const blob = await imgRes.arrayBuffer()
+      const hash = await crypto.subtle.digest('SHA-256', blob)
+      const hex = Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('')
+      return hex
+    } catch { await delay(1000 * (i + 1)) }
+  }
+  return null
+}
+
+async function getMiniLMVector(text) {
+  for (let i = 0; i < 3; i++) {
+    try {
+      const res = await fetch(HF_MINI_URL, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${hfKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...body, options: { wait_for_model: true } })
+        body: JSON.stringify({ inputs: text, options: { wait_for_model: true } })
       })
       if (!res.ok) { await delay(1000 * (i + 1)); continue }
       const data = await res.json()
@@ -120,8 +136,6 @@ async function fetchHF(url, body) {
   return null
 }
 
-function getClipVector(url) { return fetchHF(HF_CLIP_URL, { inputs: url }) }
-function getMiniLMVector(text) { return fetchHF(HF_MINI_URL, { inputs: text }) }
 function delay(ms) { return new Promise(r => setTimeout(r, ms)) }
 
 function cosineSimilarity(a, b) {
