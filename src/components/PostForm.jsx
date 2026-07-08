@@ -3,34 +3,37 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { CATEGORIES, POST_LIMIT_PER_SECTION } from '../utils/constants'
 
-export default function PostForm({ type, onClose, onSuccess }) {
+export default function PostForm({ type, onClose, onSuccess, editPost }) {
   const { user } = useAuth()
-  const [description, setDescription] = useState('')
-  const [category, setCategory] = useState('')
-  const [location, setLocation] = useState('')
-  const [date, setDate] = useState('')
+  const [description, setDescription] = useState(editPost?.description || '')
+  const [category, setCategory] = useState(editPost?.category || '')
+  const [location, setLocation] = useState(editPost?.location || '')
+  const [date, setDate] = useState(editPost?.date || '')
   const [image, setImage] = useState(null)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
+  const isEditing = !!editPost
 
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
 
-    const { count } = await supabase
-      .from('posts')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .eq('type', type)
-      .eq('status', 'active')
+    if (!isEditing) {
+      const { count } = await supabase
+        .from('posts')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('type', type)
+        .eq('status', 'active')
 
-    if (count >= POST_LIMIT_PER_SECTION) {
-      setError(`You can only have ${POST_LIMIT_PER_SECTION} active ${type} posts. Delete one first.`)
-      return
+      if (count >= POST_LIMIT_PER_SECTION) {
+        setError(`You can only have ${POST_LIMIT_PER_SECTION} active ${type} posts. Delete one first.`)
+        return
+      }
     }
 
     setUploading(true)
-    let imageUrl = ''
+    let imageUrl = editPost?.image_url || ''
 
     if (image) {
       const compressed = await compressImage(image)
@@ -46,14 +49,21 @@ export default function PostForm({ type, onClose, onSuccess }) {
       imageUrl = data.secure_url || ''
     }
 
+    const payload = { description, category, location, date, image_url: imageUrl }
+
+    if (isEditing) {
+      const { error: dbError } = await supabase.from('posts').update(payload).eq('id', editPost.id)
+      setUploading(false)
+      if (dbError) { setError(dbError.message); return }
+      onSuccess()
+      onClose()
+      return
+    }
+
     const { data: newPost, error: dbError } = await supabase.from('posts').insert({
+      ...payload,
       user_id: user.id,
-      type,
-      description,
-      category,
-      location,
-      date,
-      image_url: imageUrl
+      type
     }).select()
 
     setUploading(false)
@@ -98,7 +108,7 @@ export default function PostForm({ type, onClose, onSuccess }) {
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div className="bg-white rounded-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-bold">Report {type === 'lost' ? 'Lost' : 'Found'} Item</h2>
+          <h2 className="text-lg font-bold">{isEditing ? 'Edit' : 'Report'} {type === 'lost' ? 'Lost' : 'Found'} Item</h2>
           <button onClick={onClose} className="text-gray-500 text-xl cursor-pointer">&times;</button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -122,7 +132,7 @@ export default function PostForm({ type, onClose, onSuccess }) {
             <input type="date" value={date} onChange={e => setDate(e.target.value)} className="border border-gray-300 rounded-lg p-2 text-sm flex-1" />
           </div>
           {error && <p className="text-red-500 text-sm">{error}</p>}
-          <button type="submit" disabled={uploading || !description.trim()} className="btn-primary w-full">{uploading ? 'Posting...' : 'Post'}</button>
+          <button type="submit" disabled={uploading || !description.trim()} className="btn-primary w-full">{uploading ? 'Saving...' : isEditing ? 'Save' : 'Post'}</button>
         </form>
       </div>
     </div>

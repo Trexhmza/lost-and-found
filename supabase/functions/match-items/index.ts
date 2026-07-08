@@ -13,12 +13,13 @@ const HF_MINI_URL = 'https://api-inference.huggingface.co/pipeline/feature-extra
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
 
 serve(async (req) => {
-  const { postId, type } = await req.json()
-  if (!postId || !type) return new Response('Missing postId or type', { status: 400 })
+  try {
+    const { postId, type } = await req.json()
+    if (!postId || !type) return new Response('Missing postId or type', { status: 400 })
 
-  const { data: post, error: postErr } = await supabase
-    .from('posts').select('*').eq('id', postId).single()
-  if (postErr || !post) return new Response('Post not found', { status: 404 })
+    const { data: post, error: postErr } = await supabase
+      .from('posts').select('*').eq('id', postId).single()
+    if (postErr || !post) return new Response('Post not found', { status: 404 })
 
   const imageVector = post.image_url ? await getClipVector(post.image_url) : null
   const textVector = await getMiniLMVector(post.description)
@@ -75,6 +76,9 @@ serve(async (req) => {
   return new Response(JSON.stringify({ matched: matches.length }), {
     headers: { 'Content-Type': 'application/json' }
   })
+  } catch (err) {
+    return new Response(err instanceof Error ? err.message : String(err), { status: 500 })
+  }
 })
 
 async function getClipVector(imageUrl) {
@@ -91,13 +95,16 @@ async function getClipVector(imageUrl) {
 }
 
 async function getMiniLMVector(text) {
-  const res = await fetch(HF_MINI_URL, {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${hfKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ inputs: text, options: { wait_for_model: true } })
-  })
-  const data = await res.json()
-  return data[0] || data
+  try {
+    const res = await fetch(HF_MINI_URL, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${hfKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ inputs: text, options: { wait_for_model: true } })
+    })
+    if (!res.ok) return [0]
+    const data = await res.json()
+    return data[0] || data
+  } catch { return [0] }
 }
 
 function cosineSimilarity(a, b) {

@@ -8,7 +8,16 @@ export default function FoundFeed() {
   const [showForm, setShowForm] = useState(false)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => { loadPosts() }, [])
+  useEffect(() => {
+    loadPosts()
+    const channel = supabase
+      .channel('found-feed')
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'posts', filter: `type=eq.found` }, (payload) => {
+        setPosts(prev => prev.filter(p => p.id !== payload.old.id))
+      })
+      .subscribe()
+    return () => supabase.removeChannel(channel)
+  }, [])
 
   async function loadPosts() {
     const { data } = await supabase
@@ -32,7 +41,7 @@ export default function FoundFeed() {
       ) : posts.length === 0 ? (
         <div className="text-center py-10 text-gray-500">No found items reported yet.</div>
       ) : (
-        posts.map(post => <PostCard key={post.id} post={post} type="found" />)
+        posts.map(post => <PostCard key={post.id} post={post} type="found" onDelete={() => loadPosts()} />)
       )}
       {showForm && <PostForm type="found" onClose={() => setShowForm(false)} onSuccess={loadPosts} />}
     </div>

@@ -182,3 +182,6 @@ create policy "Messages visible to conversation participants"
 
 create policy "Users can send messages"
   on public.messages for insert with check (auth.uid() = sender_id);
+
+-- Enable real-time for posts table (needed for live delete propagation)
+alter publication supabase_realtime add table posts;

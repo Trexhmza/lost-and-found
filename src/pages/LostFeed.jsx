@@ -8,7 +8,16 @@ export default function LostFeed() {
   const [showForm, setShowForm] = useState(false)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => { loadPosts() }, [])
+  useEffect(() => {
+    loadPosts()
+    const channel = supabase
+      .channel('lost-feed')
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'posts', filter: `type=eq.lost` }, (payload) => {
+        setPosts(prev => prev.filter(p => p.id !== payload.old.id))
+      })
+      .subscribe()
+    return () => supabase.removeChannel(channel)
+  }, [])
 
   async function loadPosts() {
     const { data } = await supabase
@@ -32,7 +41,7 @@ export default function LostFeed() {
       ) : posts.length === 0 ? (
         <div className="text-center py-10 text-gray-500">No lost items reported yet. Be the first!</div>
       ) : (
-        posts.map(post => <PostCard key={post.id} post={post} type="lost" />)
+        posts.map(post => <PostCard key={post.id} post={post} type="lost" onDelete={() => loadPosts()} />)
       )}
       {showForm && <PostForm type="lost" onClose={() => setShowForm(false)} onSuccess={loadPosts} />}
     </div>
