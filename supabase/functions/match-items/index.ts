@@ -7,6 +7,7 @@ const groqKey = Deno.env.get('GROQ_API_KEY')!
 const supabase = createClient(supabaseUrl, supabaseKey)
 
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
+const VISION_MODEL = 'llama-3.2-11b-vision-preview'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -78,16 +79,55 @@ serve(async (req) => {
 })
 
 async function groqMatch(postA, postB) {
-  let prompt = `You are matching lost & found items. Compare these two posts and decide match confidence (0-100).
+  const content: any[] = []
+
+  let text = `You are matching lost & found items. Decide how likely these two posts refer to the SAME physical item. Reply with ONLY a number 0-100 (higher = same item).
 
 Post A (${postA.type}): "${postA.description}"
 Post B (${postB.type}): "${postB.description}"
-
 `
-  if (postA.image_url) prompt += `Post A image URL: ${postA.image_url}\n`
-  if (postB.image_url) prompt += `Post B image URL: ${postB.image_url}\n`
-  prompt += `Return ONLY a number 0-100. 0 = completely different, 100 = definitely the same item. Just the number.`
+  if (postA.image_url) text += `\nThe FIRST photo belongs to Post A.`
+  if (postB.image_url) text += `\nThe SECOND photo belongs to Post B.`
+  text += `\nCompare both the photos and the descriptions. Return ONLY a number 0-100.`
+  content.push({ type: 'text', text })
 
+  const imgA = postA.image_url ? await fetchImageB64(downscale(postA.image_url)) : null
+  const imgB = postB.image_url ? await fetchImageB64(downscale(postB.image_url)) : null
+  if (imgA) content.push({ type: 'image_url', image_url: { url: imgA } })
+  if (imgB) content.push({ type: 'image_url', image_url: { url: imgB } })
+
+  const useVision = !!(imgA || imgB)
+  const model = useVision ? VISION_MODEL : 'llama-3.1-8b-instant'
+
+  for (let i = 0; i < 3; i++) {
+    try {
+      const res = await fetch(GROQ_URL, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${groqKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model,
+          messages: [{ role: 'user', content }],
+          temperature: 0.1,
+          max_tokens: 5
+        })
+      })
+      if (!res.ok) throw new Error(`Groq ${res.status}: ${await res.text()}`)
+      const data = await res.json()
+      const val = parseInt(data?.choices?.[0]?.message?.content)
+      if (!isNaN(val) && val >= 0 && val <= 100) return val
+    } catch { await delay(1000 * (i + 1)) }
+  }
+
+  // Fallback: text-only if vision path failed
+  if (useVision) return await groqMatchText(postA, postB)
+  return 0
+}
+
+async function groqMatchText(postA, postB) {
+  const prompt = `You are matching lost & found items. Compare these two posts and decide match confidence (0-100).
+Post A (${postA.type}): "${postA.description}"
+Post B (${postB.type}): "${postB.description}"
+Return ONLY a number 0-100. Just the number.`
   for (let i = 0; i < 3; i++) {
     try {
       const res = await fetch(GROQ_URL, {
@@ -100,7 +140,7 @@ Post B (${postB.type}): "${postB.description}"
           max_tokens: 5
         })
       })
-      if (!res.ok) throw new Error(`Groq ${res.status}: ${await res.text()}`)
+      if (!res.ok) throw new Error(`Groq ${res.status}`)
       const data = await res.json()
       const val = parseInt(data?.choices?.[0]?.message?.content)
       if (!isNaN(val) && val >= 0 && val <= 100) return val
@@ -109,4 +149,26 @@ Post B (${postB.type}): "${postB.description}"
   return 0
 }
 
-function delay(ms) { return new Promise(r => setTimeout(r, ms)) }
+function downscale(url: string) {
+  // Insert a Cloudinary transform to shrink the image before sending to the vision model
+  return url.replace('/upload/', '/upload/w_384,c_limit,q_70/')
+}
+
+async function fetchImageB64(url: string): Promise<string | null> {
+  try {
+    const res = await fetch(url)
+    if (!res.ok) return null
+    const buf = await res.arrayBuffer()
+    const bytes = new Uint8Array(buf)
+    let binary = ''
+    const chunk = 0x8000
+    for (let i = 0; i < bytes.length; i += chunk) {
+      binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk))
+    }
+    return `data:image/jpeg;base64,${btoa(binary)}`
+  } catch {
+    return null
+  }
+}
+
+function delay(ms: number) { return new Promise(r => setTimeout(r, ms)) }
