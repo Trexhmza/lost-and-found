@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 
@@ -21,15 +21,33 @@ export default function DMs() {
     return () => supabase.removeChannel(channel)
   }, [page])
 
+  const fetchMessages = useCallback(async () => {
+    if (!selectedConv) return
+    const { data } = await supabase
+      .from('messages')
+      .select('*')
+      .eq('conversation_id', selectedConv.id)
+      .order('created_at', { ascending: true })
+    if (data) {
+      const unreadIds = data.filter(m => m.sender_id !== user.id && m.status === 'sent').map(m => m.id)
+      if (unreadIds.length) {
+        await supabase.from('messages').update({ status: 'delivered' }).in('id', unreadIds)
+      }
+      setMessages(data.map(m => unreadIds.includes(m.id) ? { ...m, status: 'delivered' } : m))
+    }
+  }, [selectedConv, user.id])
+
   useEffect(() => {
     if (!selectedConv) return
+    fetchMessages()
+    const interval = setInterval(fetchMessages, 3000)
     const channel = supabase
       .channel(`msgs-${selectedConv.id}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${selectedConv.id}` }, (payload) => {
         setMessages(prev => {
           if (prev.some(m => m.id === payload.new.id)) return prev
           if (payload.new.sender_id !== user.id) {
-            supabase.from('messages').update({ status: 'delivered' }).eq('id', payload.new.id).then(() => loadMessages())
+            supabase.from('messages').update({ status: 'delivered' }).eq('id', payload.new.id).then(fetchMessages)
           }
           return [...prev, payload.new]
         })
@@ -38,8 +56,8 @@ export default function DMs() {
         setMessages(prev => prev.map(m => m.id === payload.new.id ? { ...m, ...payload.new } : m))
       })
       .subscribe()
-    return () => supabase.removeChannel(channel)
-  }, [selectedConv?.id])
+    return () => { supabase.removeChannel(channel); clearInterval(interval) }
+  }, [selectedConv?.id, fetchMessages])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -55,37 +73,9 @@ export default function DMs() {
     setLoading(false)
   }
 
-  async function loadMessages() {
-    if (!selectedConv) return
-    const { data } = await supabase
-      .from('messages')
-      .select('*')
-      .eq('conversation_id', selectedConv.id)
-      .order('created_at', { ascending: true })
-    if (data) {
-      const unreadIds = data.filter(m => m.sender_id !== user.id && m.status === 'sent').map(m => m.id)
-      if (unreadIds.length) {
-        await supabase.from('messages').update({ status: 'delivered' }).in('id', unreadIds)
-      }
-      setMessages(data.map(m => unreadIds.includes(m.id) ? { ...m, status: 'delivered' } : m))
-    }
-  }
-
   async function openConversation(conv) {
     setSelectedConv(conv)
     setPage('chat')
-    const { data } = await supabase
-      .from('messages')
-      .select('*')
-      .eq('conversation_id', conv.id)
-      .order('created_at', { ascending: true })
-    if (data) {
-      const unreadIds = data.filter(m => m.sender_id !== user.id && m.status === 'sent').map(m => m.id)
-      if (unreadIds.length) {
-        await supabase.from('messages').update({ status: 'delivered' }).in('id', unreadIds)
-      }
-      setMessages(data.map(m => unreadIds.includes(m.id) ? { ...m, status: 'delivered' } : m))
-    }
   }
 
   async function sendMessage() {
@@ -108,8 +98,7 @@ export default function DMs() {
 
   function statusIcon(m) {
     if (m.sender_id !== user.id) return null
-    if (m.status === 'read') return <span className="text-[10px] text-blue-500 ml-1">✓✓</span>
-    if (m.status === 'delivered') return <span className="text-[10px] text-blue-500 ml-1">✓✓</span>
+    if (m.status === 'read' || m.status === 'delivered') return <span className="text-[10px] text-blue-500 ml-1">✓✓</span>
     return <span className="text-[10px] text-gray-400 ml-1">✓</span>
   }
 
