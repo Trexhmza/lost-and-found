@@ -53,13 +53,13 @@ serve(async (req) => {
     let final = combineScores(imgScore, txtScore, type === 'lost')
     let llmAdjust = 0
 
-    if (final >= 0.5 && final <= 0.75) {
+    if (final >= 0.30 && final <= 0.60) {
       llmAdjust = await groqRerank(post.description, opp.description, imgScore, txtScore)
     }
 
     final = Math.min(1, Math.max(0, final + llmAdjust))
 
-    if (final >= 0.7) {
+    if (final >= 0.50) {
       matches.push({
         [type === 'lost' ? 'lost_post_id' : 'found_post_id']: postId,
         [type === 'lost' ? 'found_post_id' : 'lost_post_id']: opp.id,

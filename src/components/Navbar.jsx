@@ -1,9 +1,34 @@
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 
 export default function Navbar() {
-  const { profile, signOut } = useAuth()
+  const { user, profile, signOut } = useAuth()
+  const [matchCount, setMatchCount] = useState(0)
   const navigate = useNavigate()
+
+  useEffect(() => {
+    if (!user) return
+    const channel = supabase
+      .channel('match-count')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, () => fetchMatchCount())
+      .subscribe()
+    fetchMatchCount()
+    return () => supabase.removeChannel(channel)
+  }, [user])
+
+  async function fetchMatchCount() {
+    const { data: userPosts } = await supabase.from('posts').select('id').eq('user_id', user.id)
+    if (!userPosts?.length) { setMatchCount(0); return }
+    const postIds = userPosts.map(p => p.id)
+    const { count } = await supabase
+      .from('matches')
+      .select('*', { count: 'exact', head: true })
+      .or(`lost_post_id.in.(${postIds.join(',')}),found_post_id.in.(${postIds.join(',')})`)
+      .eq('status', 'pending')
+    setMatchCount(count || 0)
+  }
 
   async function handleSignOut() {
     await signOut()
@@ -17,7 +42,7 @@ export default function Navbar() {
         <div className="flex items-center gap-5 text-sm font-medium">
           <Link to="/lost" className="hover:text-blue-600 transition">Lost</Link>
           <Link to="/found" className="hover:text-blue-600 transition">Found</Link>
-          <Link to="/matches" className="hover:text-blue-600 transition">Matches</Link>
+          <Link to="/matches" className="hover:text-blue-600 transition relative">Matches{matchCount > 0 && <span className="absolute -top-1.5 -right-3 bg-red-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">{matchCount}</span>}</Link>
           <Link to="/dms" className="hover:text-blue-600 transition">DMs</Link>
           <div className="relative group">
             <button className="flex items-center gap-2 cursor-pointer">
