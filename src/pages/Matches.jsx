@@ -22,11 +22,24 @@ export default function Matches() {
 
     const { data } = await supabase
       .from('matches')
-      .select('*, lost:lost_post_id(id, description, image_url, user_id, profiles!lost_post_id(name, avatar_url)), found:found_post_id(id, description, image_url, user_id, profiles!found_post_id(name, avatar_url))')
+      .select('*, lost:lost_post_id(id, description, image_url, user_id), found:found_post_id(id, description, image_url, user_id)')
       .or(`lost_post_id.in.(${postIds.join(',')}),found_post_id.in.(${postIds.join(',')})`)
       .order('created_at', { ascending: false })
 
-    if (data) setMatches(data)
+    if (data) {
+      const userIds = [...new Set(data.flatMap(m => [m.lost?.user_id, m.found?.user_id].filter(Boolean)))]
+      if (userIds.length) {
+        const { data: profiles } = await supabase.from('profiles').select('id, name, email').in('id', userIds)
+        const profileMap = Object.fromEntries((profiles || []).map(p => [p.id, p]))
+        setMatches(data.map(m => ({
+          ...m,
+          lost: m.lost ? { ...m.lost, profiles: profileMap[m.lost.user_id] } : null,
+          found: m.found ? { ...m.found, profiles: profileMap[m.found.user_id] } : null
+        })))
+      } else {
+        setMatches(data)
+      }
+    }
     setLoading(false)
   }
 
