@@ -8,13 +8,23 @@ const supabase = createClient(supabaseUrl, supabaseKey)
 
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+}
+
 serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
+
   try {
     const body = await req.json()
 
     if (body.check) {
       const { data } = await supabase.from('matches').select('*, lost:lost_post_id(*), found:found_post_id(*)')
-      return new Response(JSON.stringify({ matches: data || [] }), { headers: { 'Content-Type': 'application/json' } })
+      return new Response(JSON.stringify({ matches: data || [] }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
     if (body.clear) {
@@ -22,20 +32,15 @@ serve(async (req) => {
       await supabase.from('messages').delete().neq('id', '00000000-0000-0000-0000-000000000000')
       await supabase.from('conversations').delete().neq('id', '00000000-0000-0000-0000-000000000000')
       await supabase.from('posts').delete().neq('id', '00000000-0000-0000-0000-000000000000')
-      return new Response(JSON.stringify({ cleared: true }), { headers: { 'Content-Type': 'application/json' } })
-    }
-
-    if (body.check) {
-      const { data } = await supabase.from('matches').select('*, lost:lost_post_id(*), found:found_post_id(*)')
-      return new Response(JSON.stringify({ matches: data || [] }), { headers: { 'Content-Type': 'application/json' } })
+      return new Response(JSON.stringify({ cleared: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
     const { postId, type } = body
-    if (!postId || !type) return new Response('Missing postId or type', { status: 400 })
+    if (!postId || !type) return new Response('Missing postId or type', { status: 400, headers: corsHeaders })
 
     const { data: post, error: postErr } = await supabase
       .from('posts').select('*').eq('id', postId).single()
-    if (postErr || !post) return new Response('Post not found', { status: 404 })
+    if (postErr || !post) return new Response('Post not found', { status: 404, headers: corsHeaders })
 
     const oppositeType = type === 'lost' ? 'found' : 'lost'
     const { data: opposites } = await supabase
@@ -45,7 +50,7 @@ serve(async (req) => {
       .eq('status', 'active')
       .neq('user_id', post.user_id)
 
-    if (!opposites?.length) return new Response(JSON.stringify({ matched: 0, matches: [] }), { headers: { 'Content-Type': 'application/json' } })
+    if (!opposites?.length) return new Response(JSON.stringify({ matched: 0, matches: [] }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
     const matches = []
     for (const opp of opposites) {
@@ -65,10 +70,10 @@ serve(async (req) => {
     }
 
     return new Response(JSON.stringify({ matched: matches.length }), {
-      headers: { 'Content-Type': 'application/json' }
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
   } catch (err) {
-    return new Response(err instanceof Error ? err.message : String(err), { status: 500 })
+    return new Response(err instanceof Error ? err.message : String(err), { status: 500, headers: corsHeaders })
   }
 })
 

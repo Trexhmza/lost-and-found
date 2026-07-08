@@ -12,6 +12,7 @@ export default function PostForm({ type, onClose, onSuccess, editPost }) {
   const [image, setImage] = useState(null)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
   const isEditing = !!editPost
 
   async function handleSubmit(e) {
@@ -74,10 +75,17 @@ export default function PostForm({ type, onClose, onSuccess, editPost }) {
     }
 
     if (newPost?.[0]?.id) {
-      const { error: fnErr } = await supabase.functions.invoke('match-items', {
+      const { data: matchRes, error: fnErr } = await supabase.functions.invoke('match-items', {
         body: { postId: newPost[0].id, type }
       })
-      if (fnErr) console.error('Match invoke error:', fnErr)
+      if (fnErr) {
+        console.error('Match invoke error:', fnErr)
+        setError('Posted, but auto-matching failed. Open the Matches tab to retry.')
+      } else if (matchRes?.matched > 0) {
+        setSuccess(`✅ ${matchRes.matched} match${matchRes.matched > 1 ? 'es' : ''} found! Check the Matches tab.`)
+        setTimeout(() => { onSuccess(); onClose() }, 1800)
+        return
+      }
     }
 
     onSuccess()
@@ -133,6 +141,7 @@ export default function PostForm({ type, onClose, onSuccess, editPost }) {
             <input type="date" value={date} onChange={e => setDate(e.target.value)} className="border border-gray-300 rounded-lg p-2 text-sm flex-1" />
           </div>
           {error && <p className="text-red-500 text-sm">{error}</p>}
+          {success && <p className="text-green-600 text-sm font-medium">{success}</p>}
           <button type="submit" disabled={uploading || !description.trim()} className="btn-primary w-full">{uploading ? 'Saving...' : isEditing ? 'Save' : 'Post'}</button>
         </form>
       </div>

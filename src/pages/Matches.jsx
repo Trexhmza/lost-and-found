@@ -10,7 +10,14 @@ export default function Matches() {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
 
-  useEffect(() => { loadMatches() }, [])
+  useEffect(() => {
+    loadMatches()
+    const channel = supabase
+      .channel('matches-live')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, () => loadMatches())
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [])
 
   async function loadMatches() {
     const { data: userPosts } = await supabase
