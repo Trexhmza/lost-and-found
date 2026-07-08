@@ -14,7 +14,9 @@ const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
 
 serve(async (req) => {
   try {
-    const { postId, type } = await req.json()
+    const body = await req.json()
+
+    const { postId, type } = body
     if (!postId || !type) return new Response('Missing postId or type', { status: 400 })
 
     const { data: post, error: postErr } = await supabase

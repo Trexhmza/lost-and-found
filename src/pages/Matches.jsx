@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 
 export default function Matches() {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [matches, setMatches] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('pending')
@@ -62,6 +64,17 @@ export default function Matches() {
   async function handleReject(matchId) {
     await supabase.from('matches').update({ status: 'rejected' }).eq('id', matchId)
     loadMatches()
+  }
+
+  async function startConversation(otherUserId) {
+    const { data: existing } = await supabase
+      .from('conversations')
+      .select('id')
+      .or(`and(user1_id.eq.${user.id},user2_id.eq.${otherUserId}),and(user1_id.eq.${otherUserId},user2_id.eq.${user.id})`)
+      .maybeSingle()
+    if (existing) { navigate('/dms'); return }
+    await supabase.from('conversations').insert({ user1_id: user.id, user2_id: otherUserId })
+    navigate('/dms')
   }
 
   const filtered = matches.filter(m => filter === 'all' || m.status === filter)
@@ -124,6 +137,7 @@ export default function Matches() {
                     <div className="text-xs text-gray-600 mt-1">
                       {otherPost?.profiles?.name} — {otherPost?.profiles?.email || 'email@umt.edu.pk'}
                     </div>
+                    <button onClick={() => startConversation(otherPost?.user_id)} className="btn-primary text-xs mt-2">Send Message</button>
                   </div>
                 )}
 

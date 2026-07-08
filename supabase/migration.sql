@@ -164,6 +164,7 @@ create table public.messages (
   conversation_id uuid references public.conversations(id) on delete cascade not null,
   sender_id uuid references public.profiles(id) on delete cascade not null,
   content text not null,
+  status text default 'sent' check (status in ('sent', 'delivered', 'read')),
   created_at timestamptz default now()
 );
 
@@ -183,5 +184,6 @@ create policy "Messages visible to conversation participants"
 create policy "Users can send messages"
   on public.messages for insert with check (auth.uid() = sender_id);
 
--- Enable real-time for posts table (needed for live delete propagation)
+-- Enable real-time for posts and messages tables
 alter publication supabase_realtime add table posts;
+alter publication supabase_realtime add table messages;
