@@ -27,6 +27,12 @@ export default function Matches() {
       .order('created_at', { ascending: false })
 
     if (data) {
+      for (const m of data) {
+        if (m.lost_confirmed && m.found_confirmed && m.status === 'pending') {
+          await supabase.from('matches').update({ status: 'confirmed' }).eq('id', m.id)
+          m.status = 'confirmed'
+        }
+      }
       const userIds = [...new Set(data.flatMap(m => [m.lost?.user_id, m.found?.user_id].filter(Boolean)))]
       if (userIds.length) {
         const { data: profiles } = await supabase.from('profiles').select('id, name, email').in('id', userIds)
@@ -46,6 +52,10 @@ export default function Matches() {
   async function handleConfirm(matchId, side) {
     const update = side === 'lost' ? { lost_confirmed: true } : { found_confirmed: true }
     await supabase.from('matches').update(update).eq('id', matchId)
+    const { data: m } = await supabase.from('matches').select('lost_confirmed, found_confirmed').eq('id', matchId).single()
+    if (m?.lost_confirmed && m?.found_confirmed) {
+      await supabase.from('matches').update({ status: 'confirmed' }).eq('id', matchId)
+    }
     loadMatches()
   }
 
