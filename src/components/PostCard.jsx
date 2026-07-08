@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import LikeButton from './LikeButton'
 import PostForm from './PostForm'
+import { timeAgo } from '../utils/constants'
 
 export default function PostCard({ post, type, onDelete }) {
   const { user } = useAuth()
@@ -75,7 +76,7 @@ export default function PostCard({ post, type, onDelete }) {
             <Link to={`/profile/${post.user_id}`} className="text-sm font-semibold hover:underline" onClick={e => e.stopPropagation()}>
               {post.profiles?.name}
             </Link>
-            <div className="text-xs text-gray-500">{new Date(post.created_at).toLocaleDateString()}</div>
+            <div className="text-xs text-gray-500">{timeAgo(post.created_at)}</div>
           </div>
           <span className={`ml-auto text-xs font-semibold px-2 py-1 rounded-full ${type === 'lost' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
             {type === 'lost' ? 'Lost' : 'Found'}

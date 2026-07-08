@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { timeAgo } from '../utils/constants'
 
 export default function UserProfile() {
   const { id } = useParams()
@@ -75,6 +76,7 @@ export default function UserProfile() {
             </span>
             {post.image_url && <img src={post.image_url} className="w-full h-32 object-cover rounded-lg mt-2 mb-2" />}
             <p className="text-sm text-gray-700 mt-1">{post.description}</p>
+            <div className="text-xs text-gray-400 mt-1">{timeAgo(post.created_at)}</div>
           </div>
         ))
       )}
