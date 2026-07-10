@@ -11,23 +11,12 @@ export default function PostCard({ post, type, onDelete }) {
   const [likeCount, setLikeCount] = useState(0)
   const [commentCount, setCommentCount] = useState(0)
   const [liked, setLiked] = useState(false)
-  const [deleting, setDeleting] = useState(null)
   const [showEdit, setShowEdit] = useState(false)
   const isOwner = user?.id === post.user_id
 
   useEffect(() => {
     loadCounts()
   }, [post.id])
-
-  useEffect(() => {
-    if (deleting === null) return
-    const timer = setTimeout(async () => {
-      await supabase.from('posts').delete().eq('id', post.id)
-      setDeleting(null)
-      onDelete?.(post.id)
-    }, 5000)
-    return () => clearTimeout(timer)
-  }, [deleting])
 
   async function loadCounts() {
     const { count: lc } = await supabase.from('likes').select('*', { count: 'exact', head: true }).eq('post_id', post.id)
@@ -41,28 +30,14 @@ export default function PostCard({ post, type, onDelete }) {
     }
   }
 
-  function handleDelete(e) {
+  async function handleDelete(e) {
     e.stopPropagation()
-    setDeleting('pending')
+    await supabase.from('posts').delete().eq('id', post.id)
+    onDelete?.(post.id)
   }
-
-  function undoDelete(e) {
-    e.stopPropagation()
-    setDeleting(null)
-  }
-
-  if (deleting === 'deleted') return null
 
   return (
     <div className="card mb-4 relative">
-      {deleting === 'pending' && (
-        <div className="absolute inset-0 bg-white/80 z-10 flex items-center justify-center rounded-xl">
-          <div className="text-center">
-            <p className="text-sm text-gray-600 mb-2">Post will be deleted...</p>
-            <button onClick={undoDelete} className="btn-primary text-xs cursor-pointer">Undo</button>
-          </div>
-        </div>
-      )}
       <Link to={`/post/${post.id}`} className="block hover:shadow-md transition">
         <div className="flex items-center gap-2 mb-3">
           <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold overflow-hidden">

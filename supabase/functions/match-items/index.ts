@@ -29,10 +29,13 @@ serve(async (req) => {
     }
 
     if (body.clear) {
-      await supabase.from('matches').delete().neq('id', '00000000-0000-0000-0000-000000000000')
       await supabase.from('messages').delete().neq('id', '00000000-0000-0000-0000-000000000000')
       await supabase.from('conversations').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+      await supabase.from('matches').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+      await supabase.from('comments').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+      await supabase.from('likes').delete().neq('id', '00000000-0000-0000-0000-000000000000')
       await supabase.from('posts').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+      await supabase.from('profiles').delete().neq('id', '00000000-0000-0000-0000-000000000000')
       return new Response(JSON.stringify({ cleared: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
@@ -49,7 +52,6 @@ serve(async (req) => {
       .select('*')
       .eq('type', oppositeType)
       .eq('status', 'active')
-      .neq('user_id', post.user_id)
 
     if (!opposites?.length) return new Response(JSON.stringify({ matched: 0, matches: [] }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
