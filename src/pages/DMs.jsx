@@ -40,9 +40,6 @@ export default function DMs() {
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages', filter: `conversation_id=eq.${selectedConv.id}` }, (payload) => {
         setMessages(prev => prev.map(m => m.id === payload.new.id ? payload.new : m))
       })
-      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'messages', filter: `conversation_id=eq.${selectedConv.id}` }, (payload) => {
-        setMessages(prev => prev.map(m => m.id === payload.old.id ? { ...m, content: 'message deleted', _deleted: true } : m))
-      })
       .on('broadcast', { event: 'typing' }, (payload) => {
         if (payload.payload.user_id !== user.id) {
           setIsTyping(true)
@@ -116,8 +113,8 @@ export default function DMs() {
 
   async function deleteMessage(msg) {
     setContextMsg(null)
-    setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, content: 'message deleted', _deleted: true } : m))
-    await supabase.from('messages').delete().eq('id', msg.id)
+    setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, content: 'message deleted' } : m))
+    await supabase.from('messages').update({ content: 'message deleted' }).eq('id', msg.id)
   }
 
   if (page === 'chat' && selectedConv) {
@@ -143,7 +140,7 @@ export default function DMs() {
             </div>
           )}
           {messages.map(m => {
-            const isDeleted = m._deleted || m.content === 'message deleted'
+            const isDeleted = m.content === 'message deleted'
             const isMine = m.sender_id === user.id
             return (
               <div key={m.id} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
