@@ -1,6 +1,17 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import Avatar from '../components/Avatar'
+
+function TypingIndicator() {
+  return (
+    <div className="flex justify-start">
+      <div className="bg-bg-warm rounded-2xl rounded-bl-md px-4 py-3 flex items-center gap-1">
+        <span className="typing-dot" /><span className="typing-dot" /><span className="typing-dot" />
+      </div>
+    </div>
+  )
+}
 
 export default function DMs() {
   const { user } = useAuth()
@@ -11,6 +22,8 @@ export default function DMs() {
   const [loading, setLoading] = useState(true)
   const messagesEndRef = useRef(null)
   const [page, setPage] = useState('list')
+  const [isTyping, setIsTyping] = useState(false)
+  const [contextMsg, setContextMsg] = useState(null)
 
   useEffect(() => {
     loadConversations()
@@ -31,6 +44,13 @@ export default function DMs() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages.length])
+
+  useEffect(() => {
+    if (!contextMsg) return
+    const close = () => setContextMsg(null)
+    document.addEventListener('click', close)
+    return () => document.removeEventListener('click', close)
+  }, [contextMsg])
 
   async function loadConversations() {
     const { data } = await supabase
@@ -66,10 +86,19 @@ export default function DMs() {
     }).select().single()
     setNewMsg('')
     if (data) setMessages(prev => [...prev, data])
+    // Simulate other person typing briefly
+    setIsTyping(true)
+    setTimeout(() => setIsTyping(false), 2000)
   }
 
   function otherUser(conv) {
     return conv.user1_id === user.id ? conv.user2 : conv.user1
+  }
+
+  async function deleteMessage(msg) {
+    setContextMsg(null)
+    await supabase.from('messages').update({ content: 'message deleted' }).eq('id', msg.id)
+    setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, content: 'message deleted' } : m))
   }
 
   if (page === 'chat' && selectedConv) {
@@ -81,12 +110,9 @@ export default function DMs() {
           <button onClick={() => { setPage('list'); setSelectedConv(null) }} className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-bg-warm transition cursor-pointer bg-transparent border-none text-text-secondary">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/10 to-primary-light/20 flex items-center justify-center text-sm font-bold text-primary overflow-hidden ring-2 ring-surface shrink-0">
-            {other?.avatar_url ? <img src={other.avatar_url} className="w-full h-full object-cover" alt="" /> : other?.name?.charAt(0)?.toUpperCase() || '?'}
-          </div>
+          <Avatar src={other?.avatar_url} name={other?.name} />
           <div className="flex-1 min-w-0">
             <span className="text-sm font-bold text-text block truncate">{other?.name}</span>
-            <span className="text-[11px] text-found font-medium">Online</span>
           </div>
         </div>
 
@@ -97,16 +123,33 @@ export default function DMs() {
               <p className="text-sm text-text-muted">No messages yet. Say hello!</p>
             </div>
           )}
-          {messages.map(m => (
-            <div key={m.id} className={`flex ${m.sender_id === user.id ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[75%] px-4 py-2.5 text-sm ${m.sender_id === user.id
-                ? 'bg-primary text-white rounded-2xl rounded-br-md'
-                : 'bg-bg-warm text-text rounded-2xl rounded-bl-md'
-              }`}>
-                {m.content}
+          {messages.map(m => {
+            const isDeleted = m.content === 'message deleted'
+            const isMine = m.sender_id === user.id
+            return (
+              <div key={m.id} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
+                <div
+                  className={`max-w-[75%] px-4 py-2.5 text-sm relative ${isMine
+                    ? 'bg-primary text-white rounded-2xl rounded-br-md'
+                    : 'bg-bg-warm text-text rounded-2xl rounded-bl-md'
+                  } ${isDeleted ? 'italic opacity-60' : ''}`}
+                  onContextMenu={e => { e.preventDefault(); if (isMine && !isDeleted) setContextMsg(m) }}
+                  onClick={() => { if (isMine && !isDeleted) setContextMsg(contextMsg?.id === m.id ? null : m) }}
+                >
+                  {m.content}
+                  {contextMsg?.id === m.id && !isDeleted && (
+                    <button
+                      onClick={e => { e.stopPropagation(); deleteMessage(m) }}
+                      className="absolute -bottom-8 right-0 bg-surface border border-border rounded-lg px-3 py-1.5 text-xs font-medium text-lost shadow-lg cursor-pointer hover:bg-lost-light transition whitespace-nowrap z-10"
+                    >
+                      Delete
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
+          {isTyping && <TypingIndicator />}
           <div ref={messagesEndRef} />
         </div>
 
@@ -149,9 +192,7 @@ export default function DMs() {
             const other = otherUser(conv)
             return (
               <button key={conv.id} onClick={() => openConversation(conv)} className="card w-full text-left cursor-pointer hover:shadow-md transition flex items-center gap-3 animate-slideUp">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary/10 to-primary-light/20 flex items-center justify-center text-sm font-bold text-primary overflow-hidden ring-2 ring-surface shrink-0">
-                  {other?.avatar_url ? <img src={other.avatar_url} className="w-full h-full object-cover" alt="" /> : other?.name?.charAt(0)?.toUpperCase() || '?'}
-                </div>
+                <Avatar src={other?.avatar_url} name={other?.name} size="lg" />
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-bold text-text truncate">{other?.name}</div>
                   <div className="text-xs text-text-muted">Tap to chat</div>

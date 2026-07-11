@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { timeAgo } from '../utils/constants'
+import Avatar from '../components/Avatar'
 
 export default function Profile() {
   const { user, profile, fetchProfile } = useAuth()
@@ -88,9 +89,7 @@ export default function Profile() {
       <div className="card mb-6 animate-slideUp">
         <div className="flex flex-col items-center mb-5">
           <label className="relative cursor-pointer group">
-            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-accent/10 to-accent/20 flex items-center justify-center text-3xl font-extrabold text-accent overflow-hidden ring-4 ring-accent/10 group-hover:ring-accent/20 transition-all">
-              {avatarUrl ? <img src={avatarUrl} className="w-full h-full object-cover" alt="" /> : profile?.name?.charAt(0)?.toUpperCase() || 'U'}
-            </div>
+            <Avatar src={avatarUrl} name={profile?.name} size="xl" className="group-hover:ring-accent/20 transition-all" />
             <div className="absolute bottom-0 right-0 bg-primary text-white rounded-full w-8 h-8 flex items-center justify-center text-sm shadow-lg ring-2 ring-surface group-hover:scale-110 transition-transform">
               {uploading ? (
                 <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />

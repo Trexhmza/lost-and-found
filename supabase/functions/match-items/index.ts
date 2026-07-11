@@ -90,14 +90,13 @@ serve(async (req) => {
 
     const matches = []
     for (const opp of candidates) {
-      const confidence = await groqMatch(post, opp)
+      const rawScore = await groqMatch(post, opp)
+      const confidence = Math.min(rawScore, 90)
       if (confidence >= 30) {
-        const reasons = computeReasons(post, opp)
         matches.push({
           [type === 'lost' ? 'lost_post_id' : 'found_post_id']: postId,
           [type === 'lost' ? 'found_post_id' : 'lost_post_id']: opp.id,
           confidence,
-          reasons,
         })
       }
     }
@@ -114,42 +113,6 @@ serve(async (req) => {
     return new Response(err instanceof Error ? err.message : String(err), { status: 500, headers: corsHeaders })
   }
 })
-
-// --- Match Reason Computation (deterministic, no API cost) ---
-
-function computeReasons(postA: any, postB: any): string[] {
-  const reasons: string[] = []
-
-  if (postA.category && postB.category && postA.category === postB.category) {
-    reasons.push(`Same category: ${postA.category}`)
-  }
-
-  if (postA.location && postB.location && postA.location.trim().toLowerCase() === postB.location.trim().toLowerCase()) {
-    reasons.push(`Same location: ${postA.location}`)
-  }
-
-  const hasImgA = !!postA.image_url
-  const hasImgB = !!postB.image_url
-  if (hasImgA && hasImgB) {
-    reasons.push('Both have photos')
-  } else if (hasImgA || hasImgB) {
-    reasons.push('One has a photo')
-  }
-
-  const descLenA = (postA.description?.trim() || '').length
-  const descLenB = (postB.description?.trim() || '').length
-  if (descLenA > 30 && descLenB > 30) {
-    reasons.push('Detailed descriptions')
-  } else if (descLenA < 15 || descLenB < 15) {
-    reasons.push('Brief description')
-  }
-
-  if (postA.date && postB.date && postA.date === postB.date) {
-    reasons.push('Same date')
-  }
-
-  return reasons
-}
 
 // --- Hugging Face Embedding Functions ---
 
@@ -278,24 +241,39 @@ async function groqMatch(postA: any, postB: any): Promise<number> {
   const locA = postA.location || 'unknown'
   const locB = postB.location || 'unknown'
 
-  let text = `You are matching lost & found items at a university campus. Decide how likely these two posts refer to the SAME physical item.
+  let text = `You are matching lost & found items at a university campus. Think LOGICALLY — could these be the SAME physical item?
+
+Don't just match words. Think like a human:
+- "black iPhone 14" lost vs "found a phone, dark colored" — likely the same, even though words differ
+- "water bottle" lost vs "red bottle with yellow cap" found — NOT a strong match. The lost post is too vague — we can't confirm the details match. Maybe 30-40.
+- "red bottle with yellow cap" lost vs "red bottle with yellow cap" found — strong match, same specific details
+- "ID card with name Ahmed" lost vs "found student ID" — likely the same
+- "blue wallet" lost vs "red wallet" found — NOT a match, details contradict
+- "phone" lost vs "water bottle" found — completely different items, not a match
+- "Jacob and Co watch, black straps" lost vs "found a wrist watch" — weak match at best, one is detailed, other is vague
+
+CRITICAL RULE: If one post has specific details (color, brand, size, marks) and the other is generic/vague, that's a WEAK match. The vague post could match ANY item of that type. Only score high when BOTH posts have enough detail to confirm they describe the same thing.
+
+Consider ALL evidence together:
+1. Do descriptions align logically? (not just keyword matching)
+2. Do images show the same type of item?
+3. Same category + same location + same day = strong signal, BUT only if descriptions don't contradict
+4. Generic/vague descriptions with no unique details = low confidence, could be coincidence
+
+Be HONEST and STRICT. Never score above 90 — even perfect matches leave room for error.
+Never score a generic description match above 50. Specific details must be confirmed on both sides for high scores.
 
 Post A (${postA.type}):
 - Description: "${descA}"
 - Category: ${catA}
 - Location: ${locA}
+- Date: ${postA.date || 'unknown'}
 
 Post B (${postB.type}):
 - Description: "${descB}"
 - Category: ${catB}
 - Location: ${locB}
-
-SCORING RULES:
-- If both descriptions are generic (e.g. "lost phone", "found phone") with NO unique identifying details (no color, no brand, no distinguishing marks), score BELOW 40
-- Same category boosts score 5-10 points
-- Same specific location (building/room, not just "campus") boosts score 5-10 points
-- Detailed descriptions with unique details (color, brand, specific marks) boost score significantly
-- Images are the strongest signal — if images show the same physical item, score HIGH`
+- Date: ${postB.date || 'unknown'}`
 
   if (photoCount === 2) {
     text += `\n\nThe FIRST photo is Post A. The SECOND photo is Post B. Compare both photos and descriptions carefully.`
@@ -305,7 +283,7 @@ SCORING RULES:
     text += `\n\nThe attached photo belongs to Post B. Compare it with Post A's description.`
   }
 
-  text += `\n\nReturn ONLY a number 0-100.`
+  text += `\n\nReturn ONLY a number 0-90. Never score above 90.`
   content.push({ type: 'text', text })
 
   if (imgA) content.push({ type: 'image_url', image_url: { url: imgA } })
@@ -321,7 +299,10 @@ SCORING RULES:
         headers: { 'Authorization': `Bearer ${groqKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model,
-          messages: [{ role: 'user', content }],
+          messages: [
+            { role: 'system', content: 'You are a matching engine. You MUST respond with ONLY a single number between 0 and 90. No words, no explanation, no punctuation. Just the number. Never score above 90.' },
+            { role: 'user', content }
+          ],
           temperature: 0.1,
           max_tokens: 5
         })
@@ -345,26 +326,41 @@ async function groqMatchText(postA: any, postB: any): Promise<number> {
   const locA = postA.location || 'unknown'
   const locB = postB.location || 'unknown'
 
-  const prompt = `You are matching lost & found items at a university campus. Decide how likely these two posts refer to the SAME physical item.
+  const prompt = `You are matching lost & found items at a university campus. Think LOGICALLY — could these be the SAME physical item?
+
+Don't just match words. Think like a human:
+- "black iPhone 14" lost vs "found a phone, dark colored" — likely the same, even though words differ
+- "water bottle" lost vs "red bottle with yellow cap" found — NOT a strong match. The lost post is too vague. Maybe 30-40.
+- "red bottle with yellow cap" lost vs "red bottle with yellow cap" found — strong match, same specific details
+- "ID card with name Ahmed" lost vs "found student ID" — likely the same
+- "blue wallet" lost vs "red wallet" found — NOT a match, details contradict
+- "phone" lost vs "water bottle" found — completely different items, not a match
+- "Jacob and Co watch, black straps" lost vs "found a wrist watch" — weak match at best
+
+CRITICAL RULE: If one post has specific details (color, brand, size, marks) and the other is generic/vague, that's a WEAK match. The vague post could match ANY item of that type. Only score high when BOTH posts have enough detail to confirm they describe the same thing.
+
+Consider ALL evidence together:
+1. Do descriptions align logically? (not just keyword matching)
+2. Same category + same location + same day = strong signal, BUT only if descriptions don't contradict
+3. Generic/vague descriptions with no unique details = low confidence, could be coincidence
+4. Missing details in one post doesn't mean mismatch — but it means we can't confirm
+
+Be HONEST and STRICT. Never score above 90 — even perfect matches leave room for error.
+Never score a generic description match above 50. Specific details must be confirmed on both sides for high scores.
 
 Post A (${postA.type}):
 - Description: "${descA}"
 - Category: ${catA}
 - Location: ${locA}
+- Date: ${postA.date || 'unknown'}
 
 Post B (${postB.type}):
 - Description: "${descB}"
 - Category: ${catB}
 - Location: ${locB}
+- Date: ${postB.date || 'unknown'}
 
-SCORING RULES:
-- If both descriptions are generic (e.g. "lost phone", "found phone") with NO unique identifying details (no color, no brand, no distinguishing marks), score BELOW 40
-- Same category boosts score 5-10 points
-- Same specific location boosts score 5-10 points
-- Detailed descriptions with unique details boost score significantly
-- If either post has no description, rely only on what's available
-
-Return ONLY a number 0-100.`
+Return ONLY a number 0-90. Never score above 90.`
 
   for (let i = 0; i < 3; i++) {
     try {
@@ -373,7 +369,10 @@ Return ONLY a number 0-100.`
         headers: { 'Authorization': `Bearer ${groqKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: 'llama-3.1-8b-instant',
-          messages: [{ role: 'user', content: prompt }],
+          messages: [
+            { role: 'system', content: 'You are a matching engine. You MUST respond with ONLY a single number between 0 and 90. No words, no explanation, no punctuation. Just the number. Never score above 90.' },
+            { role: 'user', content: prompt }
+          ],
           temperature: 0.1,
           max_tokens: 5
         })

@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../context/AuthContext'
 import LikeButton from './LikeButton'
 import PostForm from './PostForm'
+import Avatar from './Avatar'
 import { timeAgo } from '../utils/constants'
 
 export default function PostCard({ post, type, onDelete }) {
@@ -72,13 +73,7 @@ export default function PostCard({ post, type, onDelete }) {
       <div className="card card-interactive mb-4 animate-slideUp" onClick={() => window.location.href = `/post/${post.id}`}>
         {/* Header */}
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/10 to-primary-light/20 flex items-center justify-center text-sm font-bold text-primary overflow-hidden ring-2 ring-surface shrink-0">
-            {post.profiles?.avatar_url ? (
-              <img src={post.profiles.avatar_url} className="w-full h-full object-cover" alt="" />
-            ) : (
-              post.profiles?.name?.charAt(0)?.toUpperCase() || '?'
-            )}
-          </div>
+          <Avatar src={post.profiles?.avatar_url} name={post.profiles?.name} />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-sm font-bold text-text truncate">{post.profiles?.name}</span>

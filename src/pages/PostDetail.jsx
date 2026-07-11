@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import LikeButton from '../components/LikeButton'
+import Avatar from '../components/Avatar'
 import { timeAgo } from '../utils/constants'
 
 export default function PostDetail() {
@@ -19,6 +20,7 @@ export default function PostDetail() {
   const [loading, setLoading] = useState(true)
   const [menuOpen, setMenuOpen] = useState(false)
   const [isMatched, setIsMatched] = useState(false)
+  const [replyTo, setReplyTo] = useState(null)
   const menuRef = useRef(null)
 
   useEffect(() => {
@@ -81,9 +83,20 @@ export default function PostDetail() {
   async function handleComment(e) {
     e.preventDefault()
     if (!newComment.trim()) return
-    await supabase.from('comments').insert({ post_id: id, user_id: user.id, content: newComment })
+    await supabase.from('comments').insert({
+      post_id: id,
+      user_id: user.id,
+      content: newComment,
+      parent_id: replyTo?.id || null
+    })
     setNewComment('')
+    setReplyTo(null)
     loadComments()
+  }
+
+  async function deleteComment(c) {
+    await supabase.from('comments').update({ content: 'comment deleted' }).eq('id', c.id)
+    setComments(prev => prev.map(cm => cm.id === c.id ? { ...cm, content: 'comment deleted' } : cm))
   }
 
   async function showLikes() {
@@ -127,9 +140,7 @@ export default function PostDetail() {
         {/* Header */}
         <div className="flex items-center gap-3 mb-4">
           <Link to={`/profile/${post.user_id}`}>
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/10 to-primary-light/20 flex items-center justify-center text-sm font-bold text-primary overflow-hidden ring-2 ring-surface">
-              {post.profiles?.avatar_url ? <img src={post.profiles.avatar_url} className="w-full h-full object-cover" alt="" /> : post.profiles?.name?.charAt(0)?.toUpperCase() || '?'}
-            </div>
+            <Avatar src={post.profiles?.avatar_url} name={post.profiles?.name} />
           </Link>
           <div className="flex-1 min-w-0">
             <Link to={`/profile/${post.user_id}`} className="text-sm font-bold text-text hover:text-accent transition no-underline">{post.profiles?.name}</Link>
@@ -220,7 +231,13 @@ export default function PostDetail() {
       <div className="card mt-4">
         <h3 className="text-sm font-bold text-text mb-4">Comments</h3>
         <form onSubmit={handleComment} className="flex gap-2 mb-5">
-          <input value={newComment} onChange={e => setNewComment(e.target.value)} placeholder="Write a comment..." className="input flex-1" />
+          {replyTo && (
+            <div className="w-full mb-2 text-[11px] text-accent font-medium flex items-center gap-1">
+              Replying to {replyTo.profiles?.name}
+              <button type="button" onClick={() => setReplyTo(null)} className="text-text-muted hover:text-text cursor-pointer bg-transparent border-none p-0 ml-1">x</button>
+            </div>
+          )}
+          <input value={newComment} onChange={e => setNewComment(e.target.value)} placeholder={replyTo ? `Reply to ${replyTo.profiles?.name}...` : 'Write a comment...'} className="input flex-1" />
           <button type="submit" disabled={!newComment.trim()} className="btn-primary px-4">Post</button>
         </form>
 
@@ -228,22 +245,73 @@ export default function PostDetail() {
           <p className="text-sm text-text-muted text-center py-4">No comments yet. Start the conversation!</p>
         ) : (
           <div className="space-y-4">
-            {comments.map(c => (
-              <div key={c.id} className="flex gap-3 animate-slideUp">
-                <Link to={`/profile/${c.user_id}`} className="shrink-0">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/10 to-primary-light/20 flex items-center justify-center text-[10px] font-bold text-primary overflow-hidden">
-                    {c.profiles?.avatar_url ? <img src={c.profiles.avatar_url} className="w-full h-full object-cover" alt="" /> : c.profiles?.name?.charAt(0)?.toUpperCase() || '?'}
+            {comments.filter(c => !c.parent_id).map(c => {
+              const replies = comments.filter(r => r.parent_id === c.id)
+              const isDeleted = c.content === 'comment deleted'
+              return (
+                <div key={c.id} className="animate-slideUp">
+                  <div className="flex gap-3">
+                    <Link to={`/profile/${c.user_id}`} className="shrink-0">
+                      <Avatar src={c.profiles?.avatar_url} name={c.profiles?.name} size="sm" />
+                    </Link>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <Link to={`/profile/${c.user_id}`} className="text-xs font-bold text-text hover:text-accent transition no-underline">{c.profiles?.name}</Link>
+                        <span className="text-[10px] text-text-muted">{timeAgo(c.created_at)}</span>
+                      </div>
+                      <p className={`text-sm leading-relaxed ${isDeleted ? 'text-text-muted italic' : 'text-text-secondary'}`}>{c.content}</p>
+                      {!isDeleted && (
+                        <div className="flex items-center gap-3 mt-1.5">
+                          {user && (
+                            <button onClick={() => setReplyTo(replyTo?.id === c.id ? null : c)} className="text-[11px] font-semibold text-accent hover:underline cursor-pointer bg-transparent border-none p-0">
+                              Reply
+                            </button>
+                          )}
+                          {user?.id === c.user_id && (
+                            <button onClick={() => deleteComment(c)} className="text-[11px] font-semibold text-text-muted hover:text-lost transition cursor-pointer bg-transparent border-none p-0">
+                              Delete
+                            </button>
+                          )}
+                        </div>
+                      )}
+                      {replyTo?.id === c.id && (
+                        <div className="mt-2 text-[11px] text-accent font-medium flex items-center gap-1">
+                          Replying to {c.profiles?.name}
+                          <button onClick={() => setReplyTo(null)} className="text-text-muted hover:text-text cursor-pointer bg-transparent border-none p-0 ml-1">x</button>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </Link>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <Link to={`/profile/${c.user_id}`} className="text-xs font-bold text-text hover:text-accent transition no-underline">{c.profiles?.name}</Link>
-                    <span className="text-[10px] text-text-muted">{timeAgo(c.created_at)}</span>
-                  </div>
-                  <p className="text-sm text-text-secondary leading-relaxed">{c.content}</p>
+                  {/* Replies */}
+                  {replies.length > 0 && (
+                    <div className="ml-8 mt-3 space-y-3 border-l-2 border-border pl-4">
+                      {replies.map(r => {
+                        const rDeleted = r.content === 'comment deleted'
+                        return (
+                          <div key={r.id} className="flex gap-3 animate-slideUp">
+                            <Link to={`/profile/${r.user_id}`} className="shrink-0">
+                              <Avatar src={r.profiles?.avatar_url} name={r.profiles?.name} size="sm" />
+                            </Link>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-0.5">
+                                <Link to={`/profile/${r.user_id}`} className="text-xs font-bold text-text hover:text-accent transition no-underline">{r.profiles?.name}</Link>
+                                <span className="text-[10px] text-text-muted">{timeAgo(r.created_at)}</span>
+                              </div>
+                              <p className={`text-sm leading-relaxed ${rDeleted ? 'text-text-muted italic' : 'text-text-secondary'}`}>{r.content}</p>
+                              {!rDeleted && user?.id === r.user_id && (
+                                <button onClick={() => deleteComment(r)} className="text-[11px] font-semibold text-text-muted hover:text-lost transition cursor-pointer bg-transparent border-none p-0 mt-1">
+                                  Delete
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>
@@ -260,9 +328,7 @@ export default function PostDetail() {
             <div className="space-y-3 max-h-60 overflow-y-auto">
               {likedBy.map(l => (
                 <div key={l.user_id} className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/10 to-primary-light/20 flex items-center justify-center text-xs font-bold text-primary overflow-hidden">
-                    {l.profiles?.avatar_url ? <img src={l.profiles.avatar_url} className="w-full h-full object-cover" alt="" /> : l.profiles?.name?.charAt(0)?.toUpperCase() || '?'}
-                  </div>
+                  <Avatar src={l.profiles?.avatar_url} name={l.profiles?.name} size="sm" />
                   <Link to={`/profile/${l.user_id}`} className="text-sm font-semibold text-text hover:text-accent transition no-underline">{l.profiles?.name}</Link>
                 </div>
               ))}

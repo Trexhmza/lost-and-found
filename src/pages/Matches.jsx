@@ -142,7 +142,9 @@ export default function Matches() {
           const myConfirmed = isLostOwner ? m.lost_confirmed : m.found_confirmed
           const otherConfirmed = isLostOwner ? m.found_confirmed : m.lost_confirmed
 
-          const reasons = m.reasons || []
+          const tier = m.confidence >= 80 ? 'best' : m.confidence >= 60 ? 'good' : 'bad'
+          const tierLabel = tier === 'best' ? 'Best match' : tier === 'good' ? 'Good match' : 'Bad match'
+          const tierColor = tier === 'best' ? 'text-found bg-found/10' : tier === 'good' ? 'text-amber-500 bg-amber-500/10' : 'text-lost bg-lost/10'
 
           return (
             <div key={m.id} className="card mb-4 animate-slideUp">
@@ -166,24 +168,16 @@ export default function Matches() {
                 </div>
               </div>
 
-              {/* Confidence */}
+              {/* Confidence + Tier */}
               <div className="flex items-center gap-3 mb-3 pt-3 border-t border-border">
                 <span className="text-lg font-extrabold text-primary">{m.confidence}%</span>
                 <div className="confidence-bar flex-1 max-w-[120px]">
                   <div className="h-full rounded-full bg-primary" style={{ width: `${m.confidence}%` }} />
                 </div>
+                <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${tierColor}`}>
+                  {tierLabel}
+                </span>
               </div>
-
-              {/* Reason Chips */}
-              {reasons.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 mb-3">
-                  {reasons.map((reason, i) => (
-                    <span key={i} className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-surface text-text-secondary border border-border">
-                      {reason}
-                    </span>
-                  ))}
-                </div>
-              )}
 
               {/* Actions */}
               <div className="flex items-center justify-between">

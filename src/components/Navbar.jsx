@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import Avatar from './Avatar'
 
 const navItems = [
   { to: '/lost', label: 'Lost', icon: (
@@ -79,13 +80,7 @@ export default function Navbar() {
 
             <div className="ml-3 pl-3 border-l border-border relative">
               <button onClick={() => setMenuOpen(!menuOpen)} className="flex items-center gap-2 cursor-pointer bg-transparent border-none p-0">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/10 to-primary-light/20 flex items-center justify-center text-sm font-bold text-primary overflow-hidden ring-2 ring-surface">
-                  {profile?.avatar_url ? (
-                    <img src={profile.avatar_url} className="w-full h-full object-cover" alt="" />
-                  ) : (
-                    profile?.name?.charAt(0)?.toUpperCase() || 'U'
-                  )}
-                </div>
+                <Avatar src={profile?.avatar_url} name={profile?.name} size="sm" />
               </button>
               {menuOpen && (
                 <>
@@ -120,8 +115,8 @@ export default function Navbar() {
             </div>
             <span className="text-base font-extrabold text-text tracking-tight">Lost<text fill="currentColor" className="text-accent"> &</text>Found</span>
           </Link>
-          <button onClick={() => navigate('/profile')} className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/10 to-primary-light/20 flex items-center justify-center text-xs font-bold text-primary overflow-hidden ring-2 ring-surface cursor-pointer border-none">
-            {profile?.avatar_url ? <img src={profile.avatar_url} className="w-full h-full object-cover" alt="" /> : profile?.name?.charAt(0)?.toUpperCase() || 'U'}
+          <button onClick={() => navigate('/profile')} className="cursor-pointer border-none bg-transparent p-0">
+            <Avatar src={profile?.avatar_url} name={profile?.name} size="sm" />
           </button>
         </div>
       </nav>

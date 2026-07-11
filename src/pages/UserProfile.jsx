@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { timeAgo } from '../utils/constants'
+import Avatar from '../components/Avatar'
 
 export default function UserProfile() {
   const { id } = useParams()
@@ -64,9 +65,7 @@ export default function UserProfile() {
     <div>
       {/* Profile Header */}
       <div className="card text-center mb-6 animate-slideUp">
-        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-accent/10 to-accent/20 flex items-center justify-center text-2xl font-extrabold text-accent mx-auto mb-3 overflow-hidden ring-4 ring-accent/10">
-          {profileData.avatar_url ? <img src={profileData.avatar_url} className="w-full h-full object-cover" alt="" /> : profileData.name?.charAt(0)?.toUpperCase() || '?'}
-        </div>
+        <Avatar src={profileData.avatar_url} name={profileData.name} size="xl" className="mx-auto mb-3" />
         <h2 className="text-xl font-extrabold text-text">{profileData.name}</h2>
         {profileData.bio && <p className="text-sm text-text-muted mt-1.5 max-w-xs mx-auto">{profileData.bio}</p>}
 
