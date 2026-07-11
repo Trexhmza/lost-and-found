@@ -9,7 +9,7 @@ export default function Avatar({ src, name, size = 'md', className = '' }) {
   const ring = size === 'xl' ? 'ring-4 ring-border' : 'ring-2 ring-surface'
 
   return (
-    <div className={`rounded-full ${sizes[size]} bg-white border border-border flex items-center justify-center font-bold text-primary overflow-hidden ${ring} shrink-0 ${className}`}>
+    <div className={`rounded-full ${sizes[size]} bg-white border border-border flex items-center justify-center font-bold text-text-muted overflow-hidden ${ring} shrink-0 ${className}`}>
       {src ? (
         <img src={src} className="w-full h-full object-cover" alt="" />
       ) : (
