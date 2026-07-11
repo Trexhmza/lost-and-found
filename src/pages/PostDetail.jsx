@@ -123,7 +123,10 @@ export default function PostDetail() {
                 </div>
               </Link>
               <div>
-                <Link to={`/profile/${c.user_id}`} className="text-xs font-semibold hover:underline">{c.profiles?.name}</Link>
+                <div className="flex items-center gap-2">
+                  <Link to={`/profile/${c.user_id}`} className="text-xs font-semibold hover:underline">{c.profiles?.name}</Link>
+                  <span className="text-[10px] text-gray-400">{timeAgo(c.created_at)}</span>
+                </div>
                 <p className="text-sm text-gray-700">{c.content}</p>
               </div>
             </div>

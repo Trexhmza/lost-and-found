@@ -58,7 +58,7 @@ serve(async (req) => {
     const matches = []
     for (const opp of opposites) {
       const confidence = await groqMatch(post, opp)
-      if (confidence >= 20) {
+      if (confidence >= 70) {
         matches.push({
           [type === 'lost' ? 'lost_post_id' : 'found_post_id']: postId,
           [type === 'lost' ? 'found_post_id' : 'lost_post_id']: opp.id,

@@ -1,4 +1,3 @@
-import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
@@ -37,40 +36,38 @@ export default function PostCard({ post, type, onDelete }) {
   }
 
   return (
-    <div className="card mb-4 relative">
-      <Link to={`/post/${post.id}`} className="block hover:shadow-md transition">
-        <div className="flex items-center gap-2 mb-3">
-          <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold overflow-hidden">
-            {post.profiles?.avatar_url ? (
-              <img src={post.profiles.avatar_url} className="w-full h-full object-cover" />
-            ) : (
-              post.profiles?.name?.charAt(0)?.toUpperCase() || '?'
-            )}
-          </div>
-          <div>
-            <Link to={`/profile/${post.user_id}`} className="text-sm font-semibold hover:underline" onClick={e => e.stopPropagation()}>
-              {post.profiles?.name}
-            </Link>
-            <div className="text-xs text-gray-500">{timeAgo(post.created_at)}</div>
-          </div>
-          <span className={`ml-auto text-xs font-semibold px-2 py-1 rounded-full ${type === 'lost' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
-            {type === 'lost' ? 'Lost' : 'Found'}
-          </span>
+    <div className="card mb-4 relative cursor-pointer hover:shadow-md transition" onClick={() => window.location.href = `/post/${post.id}`}>
+      <div className="flex items-center gap-2 mb-3">
+        <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold overflow-hidden">
+          {post.profiles?.avatar_url ? (
+            <img src={post.profiles.avatar_url} className="w-full h-full object-cover" />
+          ) : (
+            post.profiles?.name?.charAt(0)?.toUpperCase() || '?'
+          )}
         </div>
+        <div>
+          <span className="text-sm font-semibold">{post.profiles?.name}</span>
+          <div className="text-xs text-gray-500">{timeAgo(post.created_at)}</div>
+        </div>
+        <span className={`ml-auto text-xs font-semibold px-2 py-1 rounded-full ${type === 'lost' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
+          {type === 'lost' ? 'Lost' : 'Found'}
+        </span>
+      </div>
 
-        {post.image_url && (
-          <img src={post.image_url} className="w-full h-48 object-cover rounded-lg mb-3" />
-        )}
+      {post.image_url && (
+        <img src={post.image_url} className="w-full h-48 object-cover rounded-lg mb-3" />
+      )}
 
-        <p className="text-sm text-gray-800 line-clamp-2">{post.description}</p>
+      <p className="text-sm text-gray-800 line-clamp-2">{post.description}</p>
 
-        {post.location && <div className="text-xs text-gray-500 mt-1">📍 {post.location}</div>}
+      {post.location && <div className="text-xs text-gray-500 mt-1">📍 {post.location}</div>}
 
-        <div className="flex items-center gap-4 mt-3 text-xs text-gray-500">
+      <div className="flex items-center gap-4 mt-3 text-xs text-gray-500">
+        <div onClick={e => e.stopPropagation()}>
           <LikeButton postId={post.id} liked={liked} count={likeCount} onToggle={(l, c) => { setLiked(l); setLikeCount(c) }} />
-          <span>💬 {commentCount}</span>
         </div>
-      </Link>
+        <span>💬 {commentCount}</span>
+      </div>
 
       {isOwner && (
         <div className="flex gap-2 mt-2 pt-2 border-t border-gray-100">
