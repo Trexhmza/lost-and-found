@@ -37,8 +37,15 @@ export default function DMs() {
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${selectedConv.id}` }, (payload) => {
         setMessages(prev => prev.some(m => m.id === payload.new.id) ? prev : [...prev, payload.new])
       })
+      .on('broadcast', { event: 'typing' }, (payload) => {
+        if (payload.payload.user_id !== user.id) {
+          setIsTyping(true)
+          clearTimeout(window._typingTimeout)
+          window._typingTimeout = setTimeout(() => setIsTyping(false), 3000)
+        }
+      })
       .subscribe()
-    return () => supabase.removeChannel(channel)
+    return () => { supabase.removeChannel(channel); clearTimeout(window._typingTimeout) }
   }, [selectedConv?.id])
 
   useEffect(() => {
@@ -86,9 +93,15 @@ export default function DMs() {
     }).select().single()
     setNewMsg('')
     if (data) setMessages(prev => [...prev, data])
-    // Simulate other person typing briefly
-    setIsTyping(true)
-    setTimeout(() => setIsTyping(false), 2000)
+    // Broadcast stop typing
+    const channel = supabase.channel(`msgs-${selectedConv.id}`)
+    channel.send({ type: 'broadcast', event: 'typing', payload: { user_id: user.id, typing: false } })
+  }
+
+  function handleTyping() {
+    if (!selectedConv) return
+    const channel = supabase.channel(`msgs-${selectedConv.id}`)
+    channel.send({ type: 'broadcast', event: 'typing', payload: { user_id: user.id, typing: true } })
   }
 
   function otherUser(conv) {
@@ -155,7 +168,7 @@ export default function DMs() {
 
         {/* Input */}
         <form onSubmit={e => { e.preventDefault(); sendMessage() }} className="flex gap-2 pt-3 border-t border-border">
-          <input value={newMsg} onChange={e => setNewMsg(e.target.value)} placeholder="Type a message..." className="input flex-1" />
+          <input value={newMsg} onChange={e => { setNewMsg(e.target.value); handleTyping() }} placeholder="Type a message..." className="input flex-1" />
           <button type="submit" disabled={!newMsg.trim()} className="btn-primary px-5">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
           </button>
