@@ -47,7 +47,7 @@ export default function PostCard({ post, type, onDelete }) {
         </div>
         <div>
           <span className="text-sm font-semibold">{post.profiles?.name}</span>
-          <div className="text-xs text-gray-500">{timeAgo(post.created_at)}</div>
+          <div className="text-xs text-gray-500">{timeAgo(post.updated_at || post.created_at)}{post.updated_at && post.updated_at !== post.created_at ? ' (edited)' : ''}</div>
         </div>
         <span className={`ml-auto text-xs font-semibold px-2 py-1 rounded-full ${type === 'lost' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
           {type === 'lost' ? 'Lost' : 'Found'}

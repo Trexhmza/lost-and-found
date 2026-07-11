@@ -46,7 +46,8 @@ create table public.posts (
   status text default 'active' check (status in ('active', 'resolved')),
   image_vector vector(512),
   text_vector vector(384),
-  created_at timestamptz default now()
+  created_at timestamptz default now(),
+  updated_at timestamptz
 );
 
 create index idx_posts_type on public.posts(type);

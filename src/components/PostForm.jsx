@@ -53,9 +53,14 @@ export default function PostForm({ type, onClose, onSuccess, editPost }) {
     const payload = { description, category, location, date, image_url: imageUrl }
 
     if (isEditing) {
-      const { error: dbError } = await supabase.from('posts').update(payload).eq('id', editPost.id)
+      const { error: dbError } = await supabase.from('posts').update({ ...payload, updated_at: new Date().toISOString() }).eq('id', editPost.id)
       setUploading(false)
       if (dbError) { setError(dbError.message); return }
+
+      await supabase.functions.invoke('match-items', {
+        body: { postId: editPost.id, type }
+      }).catch(() => {})
+
       onSuccess()
       onClose()
       return

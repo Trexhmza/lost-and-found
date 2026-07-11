@@ -93,7 +93,7 @@ export default function Profile() {
                 {post.type}
               </span>
               <p className="text-sm text-gray-700 mt-1 line-clamp-1">{post.description}</p>
-              <div className="text-xs text-gray-400 mt-1">{timeAgo(post.created_at)}</div>
+              <div className="text-xs text-gray-400 mt-1">{timeAgo(post.updated_at || post.created_at)}{post.updated_at && post.updated_at !== post.created_at ? ' (edited)' : ''}</div>
             </div>
             <button onClick={() => deletePost(post.id)} className="text-xs text-red-600 hover:underline cursor-pointer">Delete</button>
           </div>
