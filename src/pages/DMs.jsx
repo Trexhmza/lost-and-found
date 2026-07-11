@@ -148,19 +148,11 @@ export default function DMs() {
                   className={`max-w-[75%] px-4 py-2.5 text-sm relative ${isMine
                     ? 'bg-primary text-white rounded-2xl rounded-br-md'
                     : 'bg-bg-warm text-text rounded-2xl rounded-bl-md'
-                  } ${isDeleted ? 'italic opacity-50' : ''}`}
+                  } ${isDeleted ? 'italic opacity-50' : ''} ${contextMsg?.id === m.id ? 'ring-2 ring-accent' : ''}`}
                   onContextMenu={e => { e.preventDefault(); if (isMine && !isDeleted) setContextMsg(m) }}
                   onClick={() => { if (isMine && !isDeleted) setContextMsg(contextMsg?.id === m.id ? null : m) }}
                 >
                   {isDeleted ? 'message deleted' : m.content}
-                  {contextMsg?.id === m.id && (
-                    <button
-                      onClick={e => { e.stopPropagation(); deleteMessage(m) }}
-                      className="absolute -bottom-8 right-0 bg-surface border border-border rounded-lg px-3 py-1.5 text-xs font-medium text-lost shadow-lg cursor-pointer hover:bg-lost-light transition whitespace-nowrap z-10"
-                    >
-                      Delete
-                    </button>
-                  )}
                 </div>
               </div>
             )
@@ -168,6 +160,17 @@ export default function DMs() {
           {isTyping && <TypingIndicator />}
           <div ref={messagesEndRef} />
         </div>
+
+        {contextMsg && (
+          <div className="flex justify-center pb-2">
+            <button
+              onClick={() => deleteMessage(contextMsg)}
+              className="bg-lost/15 border border-lost/30 rounded-xl px-5 py-2 text-xs font-semibold text-lost shadow-lg cursor-pointer hover:bg-lost/25 transition"
+            >
+              Delete Message
+            </button>
+          </div>
+        )}
 
         {/* Input */}
         <form onSubmit={e => { e.preventDefault(); sendMessage() }} className="flex gap-2 pt-3 border-t border-border">

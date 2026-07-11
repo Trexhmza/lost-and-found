@@ -264,7 +264,7 @@ export default function PostDetail() {
                       {!isDeleted && (
                         <div className="flex items-center gap-3 mt-1.5">
                           {user && (
-                            <button onClick={() => { setReplyTo(replyTo?.id === c.id ? null : c); setTimeout(() => commentInputRef.current?.focus(), 50) }} className="text-[11px] font-semibold text-accent hover:underline cursor-pointer bg-transparent border-none p-0">
+                            <button onClick={() => { setReplyTo(replyTo?.id === c.id ? null : c); setTimeout(() => { commentInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); commentInputRef.current?.focus() }, 100) }} className="text-[11px] font-semibold text-accent hover:underline cursor-pointer bg-transparent border-none p-0">
                               Reply
                             </button>
                           )}
