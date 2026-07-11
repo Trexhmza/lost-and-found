@@ -13,6 +13,7 @@ export default function PostCard({ post, type, onDelete }) {
   const [showEdit, setShowEdit] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [isMatched, setIsMatched] = useState(false)
+  const [matchCount, setMatchCount] = useState(0)
   const menuRef = useRef(null)
   const isOwner = user?.id === post.user_id
 
@@ -45,10 +46,10 @@ export default function PostCard({ post, type, onDelete }) {
   async function checkMatchStatus() {
     const { data } = await supabase
       .from('matches')
-      .select('id')
+      .select('id, confidence')
       .or(`lost_post_id.eq.${post.id},found_post_id.eq.${post.id}`)
-      .limit(1)
     setIsMatched(!!data?.length)
+    setMatchCount(data?.length || 0)
   }
 
   async function handleDelete(e) {
@@ -144,11 +145,18 @@ export default function PostCard({ post, type, onDelete }) {
             {commentCount}
           </span>
 
-          {isMatched && isOwner && (
-            <div className="ml-auto flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent/10">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-              <span className="text-[11px] font-bold text-accent-dark">Locked</span>
-            </div>
+          {isOwner && (
+            isMatched ? (
+              <div className="ml-auto flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-found/10 text-found">
+                <span className="text-sm">&#128522;</span>
+                <span className="text-[11px] font-bold">{matchCount} match{matchCount !== 1 ? 'es' : ''}</span>
+              </div>
+            ) : (
+              <div className="ml-auto flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface text-text-muted border border-border">
+                <span className="text-sm">&#128543;</span>
+                <span className="text-[11px] font-medium">No matches</span>
+              </div>
+            )
           )}
         </div>
       </div>
