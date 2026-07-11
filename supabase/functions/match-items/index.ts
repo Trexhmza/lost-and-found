@@ -4,10 +4,14 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!
 const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 const groqKey = Deno.env.get('GROQ_API_KEY')!
+const hfKey = Deno.env.get('HF_API_KEY')!
 const supabase = createClient(supabaseUrl, supabaseKey)
 
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
 const VISION_MODEL = 'llama-3.2-11b-vision-preview'
+const HF_URL = 'https://api-inference.huggingface.co/models'
+const TEXT_EMBED_MODEL = 'Alibaba-NLP/gte-small'
+const IMG_EMBED_MODEL = 'openai/clip-vit-base-patch32'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -51,17 +55,41 @@ serve(async (req) => {
       .from('posts').select('*').eq('id', postId).single()
     if (postErr || !post) return new Response('Post not found', { status: 404, headers: corsHeaders })
 
-    const oppositeType = type === 'lost' ? 'found' : 'lost'
-    const { data: opposites } = await supabase
-      .from('posts')
-      .select('*')
-      .eq('type', oppositeType)
-      .eq('status', 'active')
+    // Generate and store embeddings for this post
+    const [textVec, imgVec] = await Promise.all([
+      post.description?.trim() ? getTextEmbedding(post.description) : null,
+      post.image_url ? getImageEmbedding(post.image_url) : null,
+    ])
 
-    if (!opposites?.length) return new Response(JSON.stringify({ matched: 0, matches: [] }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    const updateFields: Record<string, any> = {}
+    if (textVec) updateFields.text_vector = textVec
+    if (imgVec) updateFields.image_vector = imgVec
+    if (Object.keys(updateFields).length > 0) {
+      await supabase.from('posts').update(updateFields).eq('id', postId)
+    }
+
+    const oppositeType = type === 'lost' ? 'found' : 'lost'
+
+    // Try pgvector pre-filter first
+    let candidates = await vectorPreFilter(post, oppositeType, textVec, imgVec)
+
+    // Fallback: if no vector candidates or embedding failed, fetch all
+    if (!candidates || candidates.length === 0) {
+      const { data: allOpposites } = await supabase
+        .from('posts')
+        .select('*')
+        .eq('type', oppositeType)
+        .eq('status', 'active')
+        .neq('user_id', post.user_id)
+      candidates = allOpposites || []
+    }
+
+    if (candidates.length === 0) {
+      return new Response(JSON.stringify({ matched: 0, matches: [] }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
 
     const matches = []
-    for (const opp of opposites) {
+    for (const opp of candidates) {
       const confidence = await groqMatch(post, opp)
       if (confidence >= 70) {
         matches.push({
@@ -85,7 +113,121 @@ serve(async (req) => {
   }
 })
 
-async function groqMatch(postA, postB) {
+// --- Hugging Face Embedding Functions ---
+
+async function getTextEmbedding(text: string): Promise<number[] | null> {
+  try {
+    const res = await fetch(`${HF_URL}/${TEXT_EMBED_MODEL}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${hfKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ inputs: text }),
+    })
+    if (!res.ok) {
+      console.error(`HF text embedding failed: ${res.status} ${await res.text()}`)
+      return null
+    }
+    const data = await res.json()
+    // gte-small returns [[...]] or [...] depending on input
+    const vec = Array.isArray(data[0]) ? data[0] : data
+    if (vec.length !== 384) {
+      console.error(`HF text embedding wrong dim: ${vec.length}`)
+      return null
+    }
+    return vec
+  } catch (e) {
+    console.error('HF text embedding error:', e)
+    return null
+  }
+}
+
+async function getImageEmbedding(imageUrl: string): Promise<number[] | null> {
+  try {
+    // Downscale for faster processing
+    const downscaled = imageUrl.replace('/upload/', '/upload/w_224,c_limit,q_60/')
+    const imgRes = await fetch(downscaled)
+    if (!imgRes.ok) return null
+    const imgBuf = await imgRes.arrayBuffer()
+
+    const res = await fetch(`${HF_URL}/${IMG_EMBED_MODEL}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${hfKey}`,
+        'Content-Type': 'application/octet-stream',
+      },
+      body: imgBuf,
+    })
+    if (!res.ok) {
+      console.error(`HF image embedding failed: ${res.status} ${await res.text()}`)
+      return null
+    }
+    const data = await res.json()
+    // clip-vit-base-patch32 returns [[...]] with 512 dims
+    const vec = Array.isArray(data[0]) ? data[0] : data
+    if (vec.length !== 512) {
+      console.error(`HF image embedding wrong dim: ${vec.length}`)
+      return null
+    }
+    return vec
+  } catch (e) {
+    console.error('HF image embedding error:', e)
+    return null
+  }
+}
+
+// --- Vector Pre-Filter ---
+
+async function vectorPreFilter(
+  post: any,
+  oppositeType: string,
+  textVec: number[] | null,
+  imgVec: number[] | null,
+): Promise<any[] | null> {
+  try {
+    // Build a combined score using text + image similarity
+    // Use rpc or raw SQL via Supabase
+    if (!textVec && !imgVec) return null
+
+    // Strategy: query using whichever vector we have, get top 15 candidates
+    // We'll use a combined cosine similarity approach via raw query
+    let rpcArgs: Record<string, any> = {
+      p_type: oppositeType,
+      p_user_id: post.user_id,
+      p_limit: 15,
+    }
+
+    if (textVec && imgVec) {
+      // Both available: combined query
+      rpcArgs.p_text_vec = `[${textVec.join(',')}]`
+      rpcArgs.p_img_vec = `[${imgVec.join(',')}]`
+      rpcArgs.p_use_both = true
+    } else if (textVec) {
+      rpcArgs.p_text_vec = `[${textVec.join(',')}]`
+      rpcArgs.p_img_vec = null
+      rpcArgs.p_use_both = false
+    } else if (imgVec) {
+      rpcArgs.p_text_vec = null
+      rpcArgs.p_img_vec = `[${imgVec.join(',')}]`
+      rpcArgs.p_use_both = false
+    }
+
+    const { data, error } = await supabase.rpc('vector_search_candidates', rpcArgs)
+    if (error) {
+      console.error('Vector search error:', error.message)
+      return null
+    }
+    return data || []
+  } catch (e) {
+    console.error('Vector pre-filter error:', e)
+    return null
+  }
+}
+
+// --- Groq Matching ---
+
+async function groqMatch(postA: any, postB: any): Promise<number> {
   const hasDescA = !!postA.description?.trim()
   const hasDescB = !!postB.description?.trim()
 
@@ -152,7 +294,7 @@ async function groqMatch(postA, postB) {
   return 0
 }
 
-async function groqMatchText(postA, postB) {
+async function groqMatchText(postA: any, postB: any): Promise<number> {
   const descA = postA.description?.trim() || '[no description]'
   const descB = postB.description?.trim() || '[no description]'
   const prompt = `You are matching lost & found items. Compare these two posts and decide match confidence (0-100).
@@ -180,8 +322,9 @@ If either post has no description, rely only on what's available. Return ONLY a 
   return 0
 }
 
+// --- Helpers ---
+
 function downscale(url: string) {
-  // Insert a Cloudinary transform to shrink the image before sending to the vision model
   return url.replace('/upload/', '/upload/w_384,c_limit,q_70/')
 }
 
