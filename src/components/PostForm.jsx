@@ -11,6 +11,7 @@ export default function PostForm({ type, onClose, onSuccess, editPost }) {
   const [date, setDate] = useState(editPost?.date || '')
   const [image, setImage] = useState(null)
   const [uploading, setUploading] = useState(false)
+  const [status, setStatus] = useState('')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const isEditing = !!editPost
@@ -37,7 +38,9 @@ export default function PostForm({ type, onClose, onSuccess, editPost }) {
     let imageUrl = editPost?.image_url || ''
 
     if (image) {
+      setStatus('Compressing image...')
       const compressed = await compressImage(image)
+      setStatus('Uploading image...')
       const formData = new FormData()
       formData.append('file', compressed)
       formData.append('upload_preset', import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET)
@@ -53,46 +56,57 @@ export default function PostForm({ type, onClose, onSuccess, editPost }) {
     const payload = { description, category, location, date, image_url: imageUrl }
 
     if (isEditing) {
+      setStatus('Saving changes...')
       const { error: dbError } = await supabase.from('posts').update({ ...payload, updated_at: new Date().toISOString() }).eq('id', editPost.id)
-      setUploading(false)
-      if (dbError) { setError(dbError.message); return }
+      if (dbError) { setUploading(false); setStatus(''); setError(dbError.message); return }
 
+      setStatus('Finding matches...')
       await supabase.functions.invoke('match-items', {
         body: { postId: editPost.id, type }
       }).catch(() => {})
 
+      setUploading(false)
+      setStatus('')
       onSuccess()
       onClose()
       return
     }
 
+    setStatus('Saving post...')
     const { data: newPost, error: dbError } = await supabase.from('posts').insert({
       ...payload,
       user_id: user.id,
       type
     }).select()
 
-    setUploading(false)
-
     if (dbError) {
+      setUploading(false)
+      setStatus('')
       setError(dbError.message)
       return
     }
 
     if (newPost?.[0]?.id) {
+      setStatus('Finding matches with AI...')
       const { data: matchRes, error: fnErr } = await supabase.functions.invoke('match-items', {
         body: { postId: newPost[0].id, type }
       })
       if (fnErr) {
         console.error('Match invoke error:', fnErr)
+        setUploading(false)
+        setStatus('')
         setError('Posted, but auto-matching failed. Open the Matches tab to retry.')
       } else if (matchRes?.matched > 0) {
-        setSuccess(`✅ ${matchRes.matched} match${matchRes.matched > 1 ? 'es' : ''} found! Check the Matches tab.`)
+        setUploading(false)
+        setStatus('')
+        setSuccess(`${matchRes.matched} match${matchRes.matched > 1 ? 'es' : ''} found! Check the Matches tab.`)
         setTimeout(() => { onSuccess(); onClose() }, 1800)
         return
       }
     }
 
+    setUploading(false)
+    setStatus('')
     onSuccess()
     onClose()
   }
@@ -119,8 +133,14 @@ export default function PostForm({ type, onClose, onSuccess, editPost }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={uploading ? undefined : onClose}>
+      <div className="bg-white rounded-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto relative" onClick={e => e.stopPropagation()}>
+        {uploading && (
+          <div className="absolute inset-0 bg-white/90 rounded-xl z-10 flex flex-col items-center justify-center gap-3">
+            <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+            <p className="text-sm font-medium text-gray-700">{status || 'Processing...'}</p>
+          </div>
+        )}
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-bold">{isEditing ? 'Edit' : 'Report'} {type === 'lost' ? 'Lost' : 'Found'} Item</h2>
           <button onClick={onClose} className="text-gray-500 text-xl cursor-pointer">&times;</button>
