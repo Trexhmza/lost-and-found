@@ -14,10 +14,13 @@ export default function PostForm({ type, onClose, onSuccess, editPost }) {
   const [status, setStatus] = useState('')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [submitted, setSubmitted] = useState(false)
   const isEditing = !!editPost
 
   async function handleSubmit(e) {
     e.preventDefault()
+    if (submitted) return
+    setSubmitted(true)
     setError('')
 
     if (!isEditing) {
@@ -30,6 +33,7 @@ export default function PostForm({ type, onClose, onSuccess, editPost }) {
 
       if (count >= POST_LIMIT_PER_SECTION) {
         setError(`You can only have ${POST_LIMIT_PER_SECTION} active ${type} posts. Delete one first.`)
+        setSubmitted(false)
         return
       }
     }
@@ -58,7 +62,7 @@ export default function PostForm({ type, onClose, onSuccess, editPost }) {
     if (isEditing) {
       setStatus('Saving changes...')
       const { error: dbError } = await supabase.from('posts').update({ ...payload, updated_at: new Date().toISOString() }).eq('id', editPost.id)
-      if (dbError) { setUploading(false); setStatus(''); setError(dbError.message); return }
+      if (dbError) { setUploading(false); setStatus(''); setError(dbError.message); setSubmitted(false); return }
 
       setStatus('Finding matches...')
       await supabase.functions.invoke('match-items', {
@@ -83,6 +87,7 @@ export default function PostForm({ type, onClose, onSuccess, editPost }) {
       setUploading(false)
       setStatus('')
       setError(dbError.message)
+      setSubmitted(false)
       return
     }
 
@@ -96,6 +101,7 @@ export default function PostForm({ type, onClose, onSuccess, editPost }) {
         setUploading(false)
         setStatus('')
         setError('Posted, but auto-matching failed. Open the Matches tab to retry.')
+        setSubmitted(false)
       } else if (matchRes?.matched > 0) {
         setUploading(false)
         setStatus('')
@@ -167,7 +173,7 @@ export default function PostForm({ type, onClose, onSuccess, editPost }) {
           </div>
           {error && <p className="text-red-500 text-sm">{error}</p>}
           {success && <p className="text-green-600 text-sm font-medium">{success}</p>}
-          <button type="submit" disabled={uploading || !description.trim()} className="btn-primary w-full">{uploading ? 'Saving...' : isEditing ? 'Save' : 'Post'}</button>
+          <button type="submit" disabled={uploading || submitted || !description.trim()} className="btn-primary w-full">{uploading ? 'Saving...' : isEditing ? 'Save' : 'Post'}</button>
         </form>
       </div>
     </div>
