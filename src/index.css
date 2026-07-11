@@ -8,8 +8,8 @@
   --color-primary-50: #1A2332;
   --color-lost: #FF6B6B;
   --color-lost-light: #2D1B1E;
-  --color-found: #A78BFA;
-  --color-found-light: #1E1A2D;
+  --color-found: #FBBF24;
+  --color-found-light: #2D2A1A;
   --color-accent: #4A90FF;
   --color-accent-dark: #3A7AEB;
   --color-surface: #1A1A1F;
@@ -252,7 +252,7 @@ select.input {
 .mesh-gradient {
   background:
     radial-gradient(ellipse at 15% 50%, rgba(74, 144, 255, 0.08) 0%, transparent 50%),
-    radial-gradient(ellipse at 85% 20%, rgba(167, 139, 250, 0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 85% 20%, rgba(251, 191, 36, 0.05) 0%, transparent 50%),
     radial-gradient(ellipse at 50% 80%, rgba(74, 144, 255, 0.05) 0%, transparent 50%),
     var(--color-bg);
 }
