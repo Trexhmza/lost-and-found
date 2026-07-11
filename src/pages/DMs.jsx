@@ -40,9 +40,6 @@ export default function DMs() {
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages', filter: `conversation_id=eq.${selectedConv.id}` }, (payload) => {
         setMessages(prev => prev.map(m => m.id === payload.new.id ? payload.new : m))
       })
-      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'messages', filter: `conversation_id=eq.${selectedConv.id}` }, (payload) => {
-        setMessages(prev => prev.filter(m => m.id !== payload.old.id))
-      })
       .on('broadcast', { event: 'typing' }, (payload) => {
         if (payload.payload.user_id !== user.id) {
           setIsTyping(true)
@@ -116,8 +113,8 @@ export default function DMs() {
 
   async function deleteMessage(msg) {
     setContextMsg(null)
-    await supabase.from('messages').delete().eq('id', msg.id)
-    setMessages(prev => prev.filter(m => m.id !== msg.id))
+    await supabase.from('messages').update({ content: 'message deleted' }).eq('id', msg.id)
+    setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, content: 'message deleted' } : m))
   }
 
   if (page === 'chat' && selectedConv) {
@@ -143,6 +140,7 @@ export default function DMs() {
             </div>
           )}
           {messages.map(m => {
+            const isDeleted = m.content === 'message deleted'
             const isMine = m.sender_id === user.id
             return (
               <div key={m.id} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
@@ -150,11 +148,11 @@ export default function DMs() {
                   className={`max-w-[75%] px-4 py-2.5 text-sm relative ${isMine
                     ? 'bg-primary text-white rounded-2xl rounded-br-md'
                     : 'bg-bg-warm text-text rounded-2xl rounded-bl-md'
-                  }`}
-                  onContextMenu={e => { e.preventDefault(); if (isMine) setContextMsg(m) }}
-                  onClick={() => { if (isMine) setContextMsg(contextMsg?.id === m.id ? null : m) }}
+                  } ${isDeleted ? 'italic opacity-50' : ''}`}
+                  onContextMenu={e => { e.preventDefault(); if (isMine && !isDeleted) setContextMsg(m) }}
+                  onClick={() => { if (isMine && !isDeleted) setContextMsg(contextMsg?.id === m.id ? null : m) }}
                 >
-                  {m.content}
+                  {isDeleted ? 'message deleted' : m.content}
                   {contextMsg?.id === m.id && (
                     <button
                       onClick={e => { e.stopPropagation(); deleteMessage(m) }}
