@@ -170,8 +170,8 @@ export default function Matches() {
 
               {/* Confidence + Tier */}
               <div className="mb-3 pt-3 border-t border-border">
+                <span className="text-sm font-bold text-text-secondary block mb-1.5">Confidentiality score</span>
                 <div className="flex items-center gap-3">
-                  <span className="text-sm font-bold text-text-secondary whitespace-nowrap">Confidentiality score</span>
                   <span className={`text-lg font-extrabold ${tier === 'certain' ? 'text-amber-400' : tier === 'good' ? 'text-primary' : 'text-lost'}`}>{m.confidence}%</span>
                   <div className="confidence-bar flex-1 max-w-[120px]">
                     <div className={`h-full rounded-full ${tier === 'certain' ? 'bg-amber-400' : tier === 'good' ? 'bg-primary' : 'bg-lost'}`} style={{ width: `${m.confidence}%` }} />
