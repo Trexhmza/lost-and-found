@@ -85,7 +85,7 @@ export default function PostCard({ post, type, onDelete }) {
                 {type === 'lost' ? 'LOST' : 'FOUND'}
               </span>
               {post.category && (
-                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-surface text-text-secondary border border-border">
+                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
                   {post.category}
                 </span>
               )}
