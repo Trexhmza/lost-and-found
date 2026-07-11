@@ -47,7 +47,6 @@ export default function PostCard({ post, type, onDelete }) {
       .from('matches')
       .select('id')
       .or(`lost_post_id.eq.${post.id},found_post_id.eq.${post.id}`)
-      .eq('status', 'confirmed')
       .limit(1)
     setIsMatched(!!data?.length)
   }

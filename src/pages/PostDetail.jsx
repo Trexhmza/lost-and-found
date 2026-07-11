@@ -68,7 +68,6 @@ export default function PostDetail() {
       .from('matches')
       .select('id')
       .or(`lost_post_id.eq.${id},found_post_id.eq.${id}`)
-      .eq('status', 'confirmed')
       .limit(1)
     setIsMatched(!!data?.length)
   }

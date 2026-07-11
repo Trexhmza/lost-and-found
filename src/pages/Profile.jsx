@@ -38,7 +38,6 @@ export default function Profile() {
           .from('matches')
           .select('lost_post_id, found_post_id')
           .or(`lost_post_id.in.(${postIds.join(',')}),found_post_id.in.(${postIds.join(',')})`)
-          .eq('status', 'confirmed')
         const locked = new Set()
         if (matches) {
           for (const m of matches) {
