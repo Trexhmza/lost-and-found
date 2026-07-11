@@ -12,6 +12,7 @@ export default function Profile() {
   const [matchedPostIds, setMatchedPostIds] = useState(new Set())
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [saved, setSaved] = useState(false)
 
   useEffect(() => {
     if (profile) {
@@ -55,6 +56,8 @@ export default function Profile() {
     await supabase.from('profiles').update({ name, bio }).eq('id', user.id)
     await fetchProfile(user.id)
     setSaving(false)
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
   }
 
   async function handleAvatarUpload(e) {
@@ -81,45 +84,89 @@ export default function Profile() {
 
   return (
     <div>
-      <div className="card mb-4">
-        <div className="flex flex-col items-center mb-4">
-          <label className="relative cursor-pointer">
-            <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center text-2xl font-bold overflow-hidden">
-              {avatarUrl ? <img src={avatarUrl} className="w-full h-full object-cover" /> : profile?.name?.charAt(0)?.toUpperCase() || 'U'}
+      {/* Profile Header */}
+      <div className="card mb-6 animate-slideUp">
+        <div className="flex flex-col items-center mb-5">
+          <label className="relative cursor-pointer group">
+            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary/10 to-primary-light/20 flex items-center justify-center text-3xl font-extrabold text-primary overflow-hidden ring-4 ring-primary/10 group-hover:ring-primary/20 transition-all">
+              {avatarUrl ? <img src={avatarUrl} className="w-full h-full object-cover" alt="" /> : profile?.name?.charAt(0)?.toUpperCase() || 'U'}
             </div>
-            <div className="absolute bottom-0 right-0 bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">{uploading ? '...' : '+'}</div>
+            <div className="absolute bottom-0 right-0 bg-primary text-white rounded-full w-8 h-8 flex items-center justify-center text-sm shadow-lg ring-2 ring-white group-hover:scale-110 transition-transform">
+              {uploading ? (
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              )}
+            </div>
             <input type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
           </label>
-          <div className="text-sm text-gray-500 mt-1">{profile?.email}</div>
+          <h2 className="text-xl font-extrabold text-text mt-3">{profile?.name}</h2>
+          <p className="text-sm text-text-muted">{profile?.email}</p>
         </div>
 
         <div className="space-y-3">
-          <input value={name} onChange={e => setName(e.target.value)} placeholder="Name" className="w-full border border-gray-300 rounded-lg p-2 text-sm" />
-          <textarea value={bio} onChange={e => setBio(e.target.value)} placeholder="Bio" className="w-full border border-gray-300 rounded-lg p-2 text-sm min-h-[60px]" />
-          <button onClick={handleSave} disabled={saving} className="btn-primary w-full text-sm">{saving ? 'Saving...' : 'Save Profile'}</button>
+          <div>
+            <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-1.5">Name</label>
+            <input value={name} onChange={e => setName(e.target.value)} placeholder="Your name" className="input" />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-1.5">Bio</label>
+            <textarea value={bio} onChange={e => setBio(e.target.value)} placeholder="Tell others about yourself..." className="input min-h-[70px]" />
+          </div>
+          <button onClick={handleSave} disabled={saving} className="btn-primary w-full py-3">
+            {saving ? 'Saving...' : saved ? 'Saved!' : 'Save Profile'}
+          </button>
         </div>
       </div>
 
-      <h2 className="text-lg font-bold mb-3">My Posts ({myPosts.length})</h2>
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-3 mb-6">
+        <div className="card text-center py-3">
+          <div className="text-2xl font-extrabold text-primary">{myPosts.length}</div>
+          <div className="text-[11px] font-bold text-text-muted uppercase tracking-wider mt-0.5">Posts</div>
+        </div>
+        <div className="card text-center py-3">
+          <div className="text-2xl font-extrabold text-lost">{myPosts.filter(p => p.type === 'lost').length}</div>
+          <div className="text-[11px] font-bold text-text-muted uppercase tracking-wider mt-0.5">Lost</div>
+        </div>
+        <div className="card text-center py-3">
+          <div className="text-2xl font-extrabold text-found">{myPosts.filter(p => p.type === 'found').length}</div>
+          <div className="text-[11px] font-bold text-text-muted uppercase tracking-wider mt-0.5">Found</div>
+        </div>
+      </div>
+
+      {/* My Posts */}
+      <h2 className="text-lg font-extrabold text-text mb-3">My Posts</h2>
       {myPosts.length === 0 ? (
-        <div className="text-center py-6 text-gray-500 text-sm">No posts yet.</div>
+        <div className="card text-center py-8">
+          <p className="text-sm text-text-muted">No posts yet.</p>
+        </div>
       ) : (
-        myPosts.map(post => (
-          <div key={post.id} className="card mb-2 flex items-center justify-between">
-            <div>
-              <span className={`text-xs font-semibold px-2 py-1 rounded-full ${post.type === 'lost' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
-                {post.type}
-              </span>
-              <p className="text-sm text-gray-700 mt-1 line-clamp-1">{post.description}</p>
-              <div className="text-xs text-gray-400 mt-1">{timeAgo(post.updated_at || post.created_at)}{post.updated_at && post.updated_at !== post.created_at ? ' (edited)' : ''}</div>
+        <div className="space-y-2">
+          {myPosts.map(post => (
+            <div key={post.id} className="card flex items-center gap-3 animate-slideUp">
+              {post.image_url && <img src={post.image_url} className="w-14 h-14 rounded-xl object-cover shrink-0" alt="" />}
+              <div className="flex-1 min-w-0">
+                <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${post.type === 'lost' ? 'badge-lost' : 'badge-found'}`}>
+                  {post.type.toUpperCase()}
+                </span>
+                <p className="text-sm text-text mt-1 line-clamp-1">{post.description}</p>
+                <div className="text-[11px] text-text-muted mt-0.5">
+                  {timeAgo(post.updated_at || post.created_at)}
+                  {post.updated_at && post.updated_at !== post.created_at && <span className="text-primary-light font-medium ml-1">(edited)</span>}
+                </div>
+              </div>
+              {matchedPostIds.has(post.id) ? (
+                <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-accent/10 shrink-0">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-accent-dark"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  <span className="text-[10px] font-bold text-accent-dark">Locked</span>
+                </div>
+              ) : (
+                <button onClick={() => deletePost(post.id)} className="text-xs font-semibold text-lost hover:text-lost/80 cursor-pointer bg-transparent border-none shrink-0">Delete</button>
+              )}
             </div>
-            {matchedPostIds.has(post.id) ? (
-              <span className="text-[11px] text-amber-600 font-medium">Locked</span>
-            ) : (
-              <button onClick={() => deletePost(post.id)} className="text-xs text-red-600 hover:underline cursor-pointer">Delete</button>
-            )}
-          </div>
-        ))
+          ))}
+        </div>
       )}
     </div>
   )

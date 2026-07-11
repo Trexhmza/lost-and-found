@@ -139,42 +139,90 @@ export default function PostForm({ type, onClose, onSuccess, editPost }) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={uploading ? undefined : onClose}>
-      <div className="bg-white rounded-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto relative" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={uploading ? undefined : onClose}>
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-fadeIn" />
+      <div className="relative bg-white w-full sm:max-w-lg sm:rounded-2xl rounded-t-2xl max-h-[92vh] overflow-y-auto animate-slideUp" onClick={e => e.stopPropagation()}>
         {uploading && (
-          <div className="absolute inset-0 bg-white/90 rounded-xl z-10 flex flex-col items-center justify-center gap-3">
-            <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
-            <p className="text-sm font-medium text-gray-700">{status || 'Processing...'}</p>
+          <div className="absolute inset-0 bg-white/90 backdrop-blur-sm rounded-t-2xl sm:rounded-2xl z-10 flex flex-col items-center justify-center gap-4">
+            <div className="relative">
+              <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-5 h-5 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-primary"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                </div>
+              </div>
+            </div>
+            <p className="text-sm font-semibold text-text">{status || 'Processing...'}</p>
           </div>
         )}
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-bold">{isEditing ? 'Edit' : 'Report'} {type === 'lost' ? 'Lost' : 'Found'} Item</h2>
-          <button onClick={onClose} className="text-gray-500 text-xl cursor-pointer">&times;</button>
+
+        {/* Handle bar (mobile) */}
+        <div className="sm:hidden flex justify-center pt-3 pb-1">
+          <div className="w-10 h-1 rounded-full bg-border" />
         </div>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {image && (
-            <div className="relative">
-              <img src={URL.createObjectURL(image)} className="w-full h-40 object-cover rounded-lg" />
-              <button type="button" onClick={() => setImage(null)} className="absolute top-2 right-2 bg-black/50 text-white rounded-full w-6 h-6 text-sm cursor-pointer">&times;</button>
-            </div>
-          )}
-          <label className="block">
-            <span className="text-sm text-gray-600">{image ? 'Change' : 'Add'} Photo (optional)</span>
-            <input type="file" accept="image/*" onChange={e => setImage(e.target.files[0])} className="block w-full text-sm mt-1" />
-          </label>
-          <textarea required placeholder="Describe the item..." value={description} onChange={e => setDescription(e.target.value)} className="w-full border border-gray-300 rounded-lg p-3 text-sm min-h-[80px]" />
-          <div className="flex gap-3">
-            <select value={category} onChange={e => setCategory(e.target.value)} className="border border-gray-300 rounded-lg p-2 text-sm flex-1">
-              <option value="">Category</option>
-              {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-            <input placeholder="Location" value={location} onChange={e => setLocation(e.target.value)} className="border border-gray-300 rounded-lg p-2 text-sm flex-1" />
-            <input type="date" value={date} onChange={e => setDate(e.target.value)} className="border border-gray-300 rounded-lg p-2 text-sm flex-1" />
+
+        <div className="p-5 sm:p-6">
+          <div className="flex justify-between items-center mb-5">
+            <h2 className="text-lg font-extrabold text-text">
+              {isEditing ? 'Edit' : 'Report'} {type === 'lost' ? 'Lost' : 'Found'} Item
+            </h2>
+            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-bg-warm transition cursor-pointer bg-transparent border-none text-text-muted">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
           </div>
-          {error && <p className="text-red-500 text-sm">{error}</p>}
-          {success && <p className="text-green-600 text-sm font-medium">{success}</p>}
-          <button type="submit" disabled={uploading || submitted || !description.trim()} className="btn-primary w-full">{uploading ? 'Saving...' : isEditing ? 'Save' : 'Post'}</button>
-        </form>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {image && (
+              <div className="relative rounded-xl overflow-hidden">
+                <img src={URL.createObjectURL(image)} className="w-full h-40 object-cover" alt="" />
+                <button type="button" onClick={() => setImage(null)} className="absolute top-2 right-2 bg-black/50 backdrop-blur-sm text-white rounded-full w-7 h-7 flex items-center justify-center text-sm cursor-pointer border-none hover:bg-black/70 transition">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+              </div>
+            )}
+
+            <label className="block cursor-pointer">
+              <div className="flex items-center gap-3 p-3 border-2 border-dashed border-border rounded-xl hover:border-primary/40 hover:bg-primary-50/50 transition">
+                <div className="w-10 h-10 rounded-xl bg-primary-50 flex items-center justify-center text-primary shrink-0">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-text">{image ? 'Change photo' : 'Add a photo'}</p>
+                  <p className="text-xs text-text-muted">Optional but helps with matching</p>
+                </div>
+              </div>
+              <input type="file" accept="image/*" onChange={e => setImage(e.target.files[0])} className="hidden" />
+            </label>
+
+            <textarea required placeholder="Describe the item — what does it look like? Where was it lost/found?" value={description} onChange={e => setDescription(e.target.value)} className="input min-h-[100px]" />
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <select value={category} onChange={e => setCategory(e.target.value)} className="input">
+                <option value="">Category</option>
+                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+              <input placeholder="Location" value={location} onChange={e => setLocation(e.target.value)} className="input" />
+              <input type="date" value={date} onChange={e => setDate(e.target.value)} className="input" />
+            </div>
+
+            {error && (
+              <div className="flex items-center gap-2 p-3 rounded-xl bg-lost-light text-lost text-sm font-medium">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                {error}
+              </div>
+            )}
+            {success && (
+              <div className="flex items-center gap-2 p-3 rounded-xl bg-found-light text-found text-sm font-medium">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                {success}
+              </div>
+            )}
+
+            <button type="submit" disabled={uploading || submitted || !description.trim()} className="btn-primary w-full py-3 text-[15px]">
+              {uploading ? 'Saving...' : isEditing ? 'Save Changes' : 'Post Item'}
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   )

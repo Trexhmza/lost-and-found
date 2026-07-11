@@ -88,20 +88,49 @@ export default function Matches() {
 
   const filtered = matches.filter(m => filter === 'all' || m.status === filter)
 
+  const filters = [
+    { key: 'all', label: 'All' },
+    { key: 'pending', label: 'Pending' },
+    { key: 'confirmed', label: 'Confirmed' },
+    { key: 'rejected', label: 'Rejected' },
+  ]
+
   return (
     <div>
-      <h1 className="text-xl font-bold mb-4">Matches</h1>
+      <h1 className="text-2xl font-extrabold text-text tracking-tight mb-1">Matches</h1>
+      <p className="text-sm text-text-muted mb-5">AI-powered item matching</p>
 
-      <div className="flex gap-2 mb-4 text-sm">
-        {['pending', 'confirmed', 'rejected', 'all'].map(f => (
-          <button key={f} onClick={() => setFilter(f)} className={`px-3 py-1 rounded-full capitalize ${filter === f ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'} cursor-pointer`}>{f}</button>
+      <div className="flex gap-2 mb-5 overflow-x-auto pb-1 -mx-1 px-1">
+        {filters.map(f => (
+          <button key={f.key} onClick={() => setFilter(f.key)}
+            className={`px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all cursor-pointer border-none ${filter === f.key ? 'bg-primary text-white shadow-md shadow-primary/20' : 'bg-surface text-text-secondary hover:bg-bg-warm border border-border-light'}`}>
+            {f.label}
+            {f.key === 'pending' && <span className="ml-1.5 bg-white/20 px-1.5 py-0.5 rounded-md text-[10px]">{matches.filter(m => m.status === 'pending').length}</span>}
+          </button>
         ))}
       </div>
 
       {loading ? (
-        <div className="text-center py-10 text-gray-500">Loading...</div>
+        <div className="space-y-4">
+          {[1,2].map(i => (
+            <div key={i} className="card">
+              <div className="flex gap-3 mb-3">
+                <div className="flex-1"><div className="skeleton h-3 w-20 mb-2" /><div className="skeleton h-24 w-full rounded-xl" /></div>
+                <div className="flex items-center"><div className="skeleton w-8 h-8 rounded-full" /></div>
+                <div className="flex-1"><div className="skeleton h-3 w-20 mb-2" /><div className="skeleton h-24 w-full rounded-xl" /></div>
+              </div>
+              <div className="skeleton h-8 w-32 rounded-lg" />
+            </div>
+          ))}
+        </div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-10 text-gray-500">No matches yet.</div>
+        <div className="card text-center py-12 animate-fadeIn">
+          <div className="w-16 h-16 rounded-2xl bg-primary-50 flex items-center justify-center mx-auto mb-4">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-primary"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+          </div>
+          <h3 className="font-bold text-text mb-1">No matches yet</h3>
+          <p className="text-sm text-text-muted">Post a lost or found item to get AI-powered matches</p>
+        </div>
       ) : (
         filtered.map(m => {
           const isLostOwner = m.lost?.user_id === user.id
@@ -110,48 +139,63 @@ export default function Matches() {
           const myConfirmed = isLostOwner ? m.lost_confirmed : m.found_confirmed
           const otherConfirmed = isLostOwner ? m.found_confirmed : m.lost_confirmed
 
+          const confColor = m.confidence >= 80 ? 'text-found' : m.confidence >= 70 ? 'text-accent-dark' : 'text-text-muted'
+          const confBg = m.confidence >= 80 ? 'bg-found' : m.confidence >= 70 ? 'bg-accent' : 'bg-border'
+
           return (
-            <div key={m.id} className="card mb-4">
-              <div className="flex gap-3 mb-3">
-                <div className="flex-1">
-                  <div className="text-xs text-gray-500 mb-1">{isLostOwner ? 'Your Lost Item' : 'Your Found Item'}</div>
-                  {myPost?.image_url && <img src={myPost.image_url} className="w-full h-24 object-cover rounded-lg mb-1" />}
-                  <p className="text-xs text-gray-700 line-clamp-2">{myPost?.description}</p>
+            <div key={m.id} className="card mb-4 animate-slideUp">
+              <div className="flex gap-3 mb-4">
+                <div className="flex-1 min-w-0">
+                  <div className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{isLostOwner ? 'Your Post' : 'Their Post'}</div>
+                  {myPost?.image_url && <img src={myPost.image_url} className="w-full h-28 object-cover rounded-xl mb-1.5" alt="" />}
+                  <p className="text-xs text-text-secondary line-clamp-2">{myPost?.description}</p>
                 </div>
-                <div className="flex items-center text-gray-400">↔</div>
-                <div className="flex-1">
-                  <div className="text-xs text-gray-500 mb-1">{isLostOwner ? 'Matched Found Item' : 'Matched Lost Item'}</div>
-                  {otherPost?.image_url && <img src={otherPost.image_url} className="w-full h-24 object-cover rounded-lg mb-1" />}
-                  <p className="text-xs text-gray-700 line-clamp-2">{otherPost?.description}</p>
+
+                <div className="flex flex-col items-center justify-center gap-1 px-1">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/10 to-primary-light/20 flex items-center justify-center">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                  </div>
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <div className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-1.5">{isLostOwner ? 'Their Post' : 'Your Post'}</div>
+                  {otherPost?.image_url && <img src={otherPost.image_url} className="w-full h-28 object-cover rounded-xl mb-1.5" alt="" />}
+                  <p className="text-xs text-text-secondary line-clamp-2">{otherPost?.description}</p>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between">
-                <span className={`text-sm font-bold ${m.confidence >= 80 ? 'text-green-600' : m.confidence >= 70 ? 'text-yellow-600' : 'text-gray-500'}`}>
-                  {m.confidence}% match
-                </span>
+              <div className="flex items-center justify-between pt-3 border-t border-border-light">
+                <div className="flex items-center gap-3">
+                  <span className={`text-lg font-extrabold ${confColor}`}>{m.confidence}%</span>
+                  <div className="confidence-bar w-20">
+                    <div className={`confidence-bar-fill ${confBg}`} style={{ width: `${m.confidence}%` }} />
+                  </div>
+                </div>
 
                 {m.status === 'pending' && (
                   <div className="flex gap-2">
-                    <button onClick={() => handleConfirm(m.id, isLostOwner ? 'lost' : 'found')} className={`btn-primary text-xs ${myConfirmed ? 'opacity-50' : ''}`} disabled={myConfirmed}>
-                      {myConfirmed ? 'Waiting for other' : 'Confirm'}
+                    <button onClick={() => handleConfirm(m.id, isLostOwner ? 'lost' : 'found')} className={`btn-primary text-xs py-2 px-4 ${myConfirmed ? 'opacity-50' : ''}`} disabled={myConfirmed}>
+                      {myConfirmed ? 'Waiting...' : 'Confirm'}
                     </button>
-                    <button onClick={() => handleReject(m.id)} className="btn-outline text-xs">Reject</button>
+                    <button onClick={() => handleReject(m.id)} className="btn-outline text-xs py-2 px-4">Reject</button>
                   </div>
                 )}
 
                 {m.status === 'confirmed' && (
                   <div className="text-right">
-                    <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">Matched!</span>
-                    <div className="text-xs text-gray-600 mt-1">
+                    <span className="inline-flex items-center gap-1.5 text-xs font-bold bg-found-light text-found px-3 py-1.5 rounded-full">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                      Matched!
+                    </span>
+                    <div className="text-xs text-text-secondary mt-2">
                       {otherPost?.profiles?.name} — {otherPost?.profiles?.email || 'email@umt.edu.pk'}
                     </div>
-                    <button onClick={() => startConversation(otherPost?.user_id)} className="btn-primary text-xs mt-2">Send Message</button>
+                    <button onClick={() => startConversation(otherPost?.user_id)} className="btn-primary text-xs mt-2 py-2 px-4">Send Message</button>
                   </div>
                 )}
 
                 {m.status === 'rejected' && (
-                  <span className="text-xs text-gray-500">Rejected</span>
+                  <span className="text-xs font-medium text-text-muted">Rejected</span>
                 )}
               </div>
             </div>

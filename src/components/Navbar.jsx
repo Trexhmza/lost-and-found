@@ -1,12 +1,29 @@
 import { useState, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+
+const navItems = [
+  { to: '/lost', label: 'Lost', icon: (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+  )},
+  { to: '/found', label: 'Found', icon: (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+  )},
+  { to: '/matches', label: 'Matches', icon: (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+  )},
+  { to: '/dms', label: 'DMs', icon: (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+  )},
+]
 
 export default function Navbar() {
   const { user, profile, signOut } = useAuth()
   const [matchCount, setMatchCount] = useState(0)
+  const [menuOpen, setMenuOpen] = useState(false)
   const navigate = useNavigate()
+  const location = useLocation()
 
   useEffect(() => {
     if (!user) return
@@ -36,32 +53,99 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
-      <div className="max-w-4xl mx-auto px-4 flex items-center justify-between h-14">
-        <Link to="/lost" className="text-xl font-bold text-blue-600">Lost & Found</Link>
-        <div className="flex items-center gap-5 text-sm font-medium">
-          <Link to="/lost" className="hover:text-blue-600 transition">Lost</Link>
-          <Link to="/found" className="hover:text-blue-600 transition">Found</Link>
-          <Link to="/matches" className="hover:text-blue-600 transition relative">Matches{matchCount > 0 && <span className="absolute -top-1.5 -right-3 bg-red-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">{matchCount}</span>}</Link>
-          <Link to="/dms" className="hover:text-blue-600 transition">DMs</Link>
-          <div className="relative group">
-            <button className="flex items-center gap-2 cursor-pointer">
-              <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center text-xs font-bold text-blue-600 overflow-hidden">
-                {profile?.avatar_url ? (
-                  <img src={profile.avatar_url} className="w-full h-full object-cover" />
-                ) : (
-                  profile?.name?.charAt(0)?.toUpperCase() || 'U'
-                )}
-              </div>
-              <span className="hidden sm:inline text-gray-700">{profile?.name}</span>
-            </button>
-            <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg py-1 w-40 hidden group-hover:block">
-              <Link to="/profile" className="block px-4 py-2 text-sm hover:bg-gray-50">Profile</Link>
-              <button onClick={handleSignOut} className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50 cursor-pointer">Logout</button>
+    <>
+      {/* Desktop top nav */}
+      <nav className="hidden md:block sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-border-light">
+        <div className="max-w-5xl mx-auto px-6 flex items-center justify-between h-16">
+          <Link to="/lost" className="flex items-center gap-2.5 no-underline">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-primary-light flex items-center justify-center">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </div>
+            <span className="text-lg font-extrabold text-text tracking-tight">Lost<text fill="currentColor" className="text-primary"> &</text>Found</span>
+          </Link>
+
+          <div className="flex items-center gap-1">
+            {navItems.map(item => {
+              const active = location.pathname === item.to
+              return (
+                <Link key={item.to} to={item.to} className={`relative flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all no-underline ${active ? 'bg-primary-50 text-primary' : 'text-text-secondary hover:bg-bg-warm hover:text-text'}`}>
+                  {item.label}
+                  {item.to === '/matches' && matchCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-lost text-white text-[10px] font-bold min-w-[18px] h-[18px] rounded-full flex items-center justify-center px-1">{matchCount}</span>
+                  )}
+                </Link>
+              )
+            })}
+
+            <div className="ml-3 pl-3 border-l border-border-light relative">
+              <button onClick={() => setMenuOpen(!menuOpen)} className="flex items-center gap-2 cursor-pointer bg-transparent border-none p-0">
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/10 to-primary-light/20 flex items-center justify-center text-sm font-bold text-primary overflow-hidden ring-2 ring-white">
+                  {profile?.avatar_url ? (
+                    <img src={profile.avatar_url} className="w-full h-full object-cover" alt="" />
+                  ) : (
+                    profile?.name?.charAt(0)?.toUpperCase() || 'U'
+                  )}
+                </div>
+              </button>
+              {menuOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
+                  <div className="absolute right-0 top-full mt-2 bg-white border border-border-light rounded-2xl shadow-xl py-2 w-48 z-50 animate-slideDown">
+                    <div className="px-4 py-3 border-b border-border-light">
+                      <p className="text-sm font-bold text-text truncate">{profile?.name}</p>
+                      <p className="text-xs text-text-muted truncate">{profile?.email}</p>
+                    </div>
+                    <Link to="/profile" onClick={() => setMenuOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-text-secondary hover:bg-bg-warm transition no-underline">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                      Profile
+                    </Link>
+                    <button onClick={handleSignOut} className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-lost hover:bg-lost-light transition cursor-pointer w-full bg-transparent border-none text-left">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                      Logout
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
+      </nav>
+
+      {/* Mobile top bar */}
+      <nav className="md:hidden sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-border-light">
+        <div className="px-4 flex items-center justify-between h-14">
+          <Link to="/lost" className="flex items-center gap-2 no-underline">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary-light flex items-center justify-center">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </div>
+            <span className="text-base font-extrabold text-text tracking-tight">Lost<text fill="currentColor" className="text-primary"> &</text>Found</span>
+          </Link>
+          <button onClick={() => navigate('/profile')} className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/10 to-primary-light/20 flex items-center justify-center text-xs font-bold text-primary overflow-hidden ring-2 ring-white cursor-pointer border-none">
+            {profile?.avatar_url ? <img src={profile.avatar_url} className="w-full h-full object-cover" alt="" /> : profile?.name?.charAt(0)?.toUpperCase() || 'U'}
+          </button>
+        </div>
+      </nav>
+
+      {/* Mobile bottom nav */}
+      <div className="bottom-nav md:hidden">
+        <div className="flex items-center justify-around h-16 px-2">
+          {navItems.map(item => {
+            const active = location.pathname === item.to
+            return (
+              <Link key={item.to} to={item.to} className={`relative flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition-all no-underline ${active ? 'text-primary' : 'text-text-muted'}`}>
+                <div className="relative">
+                  {item.icon}
+                  {item.to === '/matches' && matchCount > 0 && (
+                    <span className="absolute -top-1.5 -right-2 bg-lost text-white text-[9px] font-bold min-w-[16px] h-[16px] rounded-full flex items-center justify-center px-0.5">{matchCount}</span>
+                  )}
+                </div>
+                <span className="text-[10px] font-semibold">{item.label}</span>
+                {active && <div className="absolute -bottom-1 w-5 h-0.5 rounded-full bg-primary" />}
+              </Link>
+            )
+          })}
+        </div>
       </div>
-    </nav>
+    </>
   )
 }

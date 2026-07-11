@@ -48,37 +48,57 @@ export default function UserProfile() {
     }
   }
 
-  if (loading) return <div className="text-center py-10 text-gray-500">Loading...</div>
-  if (!profileData) return <div className="text-center py-10 text-gray-500">User not found</div>
+  if (loading) return (
+    <div className="space-y-4">
+      <div className="card text-center py-8">
+        <div className="skeleton w-20 h-20 rounded-full mx-auto mb-3" />
+        <div className="skeleton h-5 w-32 mx-auto mb-2" />
+        <div className="skeleton h-3 w-40 mx-auto" />
+      </div>
+    </div>
+  )
+
+  if (!profileData) return <div className="card text-center py-12"><p className="text-text-muted">User not found</p></div>
 
   return (
     <div>
-      <div className="card text-center mb-4">
-        <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center text-2xl font-bold mx-auto mb-3 overflow-hidden">
-          {profileData.avatar_url ? <img src={profileData.avatar_url} className="w-full h-full object-cover" /> : profileData.name?.charAt(0)?.toUpperCase() || '?'}
+      {/* Profile Header */}
+      <div className="card text-center mb-6 animate-slideUp">
+        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary/10 to-primary-light/20 flex items-center justify-center text-2xl font-extrabold text-primary mx-auto mb-3 overflow-hidden ring-4 ring-primary/10">
+          {profileData.avatar_url ? <img src={profileData.avatar_url} className="w-full h-full object-cover" alt="" /> : profileData.name?.charAt(0)?.toUpperCase() || '?'}
         </div>
-        <h2 className="text-lg font-bold">{profileData.name}</h2>
-        {profileData.bio && <p className="text-sm text-gray-500 mt-1">{profileData.bio}</p>}
+        <h2 className="text-xl font-extrabold text-text">{profileData.name}</h2>
+        {profileData.bio && <p className="text-sm text-text-muted mt-1.5 max-w-xs mx-auto">{profileData.bio}</p>}
 
         {user?.id !== id && (
-          <button onClick={startConversation} className="btn-primary text-sm mt-3">Send Message</button>
+          <button onClick={startConversation} className="btn-primary mt-4 px-6">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            Send Message
+          </button>
         )}
       </div>
 
-      <h3 className="text-sm font-semibold mb-3">Active Posts</h3>
+      {/* User's Posts */}
+      <h3 className="text-sm font-bold text-text-muted uppercase tracking-wider mb-3">Active Posts</h3>
       {userPosts.length === 0 ? (
-        <div className="text-center py-6 text-gray-500 text-sm">No active posts.</div>
+        <div className="card text-center py-8">
+          <p className="text-sm text-text-muted">No active posts.</p>
+        </div>
       ) : (
-        userPosts.map(post => (
-          <div key={post.id} className="card mb-2">
-            <span className={`text-xs font-semibold px-2 py-1 rounded-full ${post.type === 'lost' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
-              {post.type}
-            </span>
-            {post.image_url && <img src={post.image_url} className="w-full h-32 object-cover rounded-lg mt-2 mb-2" />}
-            <p className="text-sm text-gray-700 mt-1">{post.description}</p>
-            <div className="text-xs text-gray-400 mt-1">{timeAgo(post.created_at)}</div>
-          </div>
-        ))
+        <div className="space-y-3">
+          {userPosts.map(post => (
+            <div key={post.id} className="card animate-slideUp">
+              <div className="flex items-center gap-2 mb-2">
+                <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${post.type === 'lost' ? 'badge-lost' : 'badge-found'}`}>
+                  {post.type.toUpperCase()}
+                </span>
+                <span className="text-[11px] text-text-muted">{timeAgo(post.created_at)}</span>
+              </div>
+              {post.image_url && <img src={post.image_url} className="w-full h-36 object-cover rounded-xl mb-2" alt="" />}
+              <p className="text-sm text-text leading-relaxed">{post.description}</p>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   )

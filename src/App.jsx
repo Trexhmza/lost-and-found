@@ -16,12 +16,12 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-[100dvh] bg-bg">
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route element={<ProtectedRoute />}>
-              <Route element={<><Navbar /><main className="max-w-2xl mx-auto px-4 pt-4 pb-20"><Outlet /></main></>}>
+              <Route element={<><Navbar /><main className="max-w-2xl mx-auto px-4 pt-4 pb-24 md:pb-8"><Outlet /></main></>}>
                 <Route path="/" element={<Navigate to="/lost" />} />
                 <Route path="/lost" element={<LostFeed />} />
                 <Route path="/found" element={<FoundFeed />} />
