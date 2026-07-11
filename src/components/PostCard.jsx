@@ -79,11 +79,16 @@ export default function PostCard({ post, type, onDelete }) {
             )}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="text-sm font-bold text-text truncate">{post.profiles?.name}</span>
               <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${type === 'lost' ? 'badge-lost' : 'badge-found'}`}>
                 {type === 'lost' ? 'LOST' : 'FOUND'}
               </span>
+              {post.category && (
+                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-surface text-text-secondary border border-border">
+                  {post.category}
+                </span>
+              )}
             </div>
             <div className="text-xs text-text-muted mt-0.5">
               {timeAgo(post.updated_at || post.created_at)}

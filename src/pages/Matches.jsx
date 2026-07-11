@@ -86,41 +86,8 @@ export default function Matches() {
     navigate('/dms')
   }
 
-  function getConfidenceTier(confidence) {
-    if (confidence >= 85) return { color: 'text-found', bg: 'bg-found/10', border: 'border-found/20', label: 'Strong match' }
-    if (confidence >= 70) return { color: 'text-amber-500', bg: 'bg-amber-500/10', border: 'border-amber-500/20', label: 'Good match' }
-    return { color: 'text-lost', bg: 'bg-lost/10', border: 'border-lost/20', label: 'Possible match' }
-  }
-
-  function getReasonIcon(reason) {
-    if (reason.startsWith('Same category')) return (
-      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
-    )
-    if (reason.startsWith('Same location')) return (
-      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-    )
-    if (reason.includes('photo')) return (
-      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-    )
-    if (reason.startsWith('Detailed')) return (
-      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-    )
-    if (reason.startsWith('Brief')) return (
-      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-    )
-    if (reason.startsWith('Same date')) return (
-      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-    )
-    return (
-      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-    )
-  }
-
   const filtered = matches.filter(m => {
     if (filter === 'all') return true
-    if (filter === 'high') return m.confidence >= 85 && m.status !== 'rejected'
-    if (filter === 'medium') return m.confidence >= 70 && m.confidence < 85 && m.status !== 'rejected'
-    if (filter === 'low') return m.confidence >= 30 && m.confidence < 70 && m.status !== 'rejected'
     return m.status === filter
   })
 
@@ -129,9 +96,6 @@ export default function Matches() {
     { key: 'pending', label: 'Pending' },
     { key: 'confirmed', label: 'Confirmed' },
     { key: 'rejected', label: 'Rejected' },
-    { key: 'high', label: 'Strong' },
-    { key: 'medium', label: 'Good' },
-    { key: 'low', label: 'Possible' },
   ]
 
   return (
@@ -178,7 +142,6 @@ export default function Matches() {
           const myConfirmed = isLostOwner ? m.lost_confirmed : m.found_confirmed
           const otherConfirmed = isLostOwner ? m.found_confirmed : m.lost_confirmed
 
-          const tier = getConfidenceTier(m.confidence)
           const reasons = m.reasons || []
 
           return (
@@ -191,7 +154,7 @@ export default function Matches() {
                 </div>
 
                 <div className="flex flex-col items-center justify-center gap-1 px-1">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-accent/10 to-accent/20 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-accent"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
                   </div>
                 </div>
@@ -203,23 +166,19 @@ export default function Matches() {
                 </div>
               </div>
 
-              {/* Confidence + Tier Badge */}
+              {/* Confidence */}
               <div className="flex items-center gap-3 mb-3 pt-3 border-t border-border">
-                <span className={`text-lg font-extrabold ${tier.color}`}>{m.confidence}%</span>
-                <div className="confidence-bar w-20 flex-1 max-w-[120px]">
-                  <div className={`h-full rounded-full ${tier.color.replace('text-', 'bg-')}`} style={{ width: `${m.confidence}%` }} />
+                <span className="text-lg font-extrabold text-primary">{m.confidence}%</span>
+                <div className="confidence-bar flex-1 max-w-[120px]">
+                  <div className="h-full rounded-full bg-primary" style={{ width: `${m.confidence}%` }} />
                 </div>
-                <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${tier.bg} ${tier.color} border ${tier.border}`}>
-                  {tier.label}
-                </span>
               </div>
 
               {/* Reason Chips */}
               {reasons.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 mb-3">
                   {reasons.map((reason, i) => (
-                    <span key={i} className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-accent/10 text-accent border border-accent/20">
-                      {getReasonIcon(reason)}
+                    <span key={i} className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-surface text-text-secondary border border-border">
                       {reason}
                     </span>
                   ))}

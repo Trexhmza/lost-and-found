@@ -204,12 +204,12 @@ export default function PostForm({ type, onClose, onSuccess, editPost }) {
             )}
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <select value={category} onChange={e => setCategory(e.target.value)} className="input">
-                <option value="">Category</option>
+              <select required value={category} onChange={e => setCategory(e.target.value)} className="input">
+                <option value="">Category *</option>
                 {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
-              <input placeholder="Location" value={location} onChange={e => setLocation(e.target.value)} className="input" />
-              <input type="date" value={date} onChange={e => setDate(e.target.value)} className="input" />
+              <input required placeholder="Location *" value={location} onChange={e => setLocation(e.target.value)} className="input" />
+              <input required type="date" value={date} onChange={e => setDate(e.target.value)} className="input" />
             </div>
 
             {error && (
@@ -225,7 +225,7 @@ export default function PostForm({ type, onClose, onSuccess, editPost }) {
               </div>
             )}
 
-            <button type="submit" disabled={uploading || submitted || !description.trim()} className="btn-primary w-full py-3 text-[15px]">
+            <button type="submit" disabled={uploading || submitted || !description.trim() || !category || !location.trim() || !date} className="btn-primary w-full py-3 text-[15px]">
               {uploading ? 'Saving...' : isEditing ? 'Save Changes' : 'Post Item'}
             </button>
           </form>
