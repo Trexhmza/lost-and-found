@@ -64,7 +64,7 @@ export default function UserProfile() {
     <div>
       {/* Profile Header */}
       <div className="card text-center mb-6 animate-slideUp">
-        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary/10 to-primary-light/20 flex items-center justify-center text-2xl font-extrabold text-primary mx-auto mb-3 overflow-hidden ring-4 ring-primary/10">
+        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-accent/10 to-accent/20 flex items-center justify-center text-2xl font-extrabold text-accent mx-auto mb-3 overflow-hidden ring-4 ring-accent/10">
           {profileData.avatar_url ? <img src={profileData.avatar_url} className="w-full h-full object-cover" alt="" /> : profileData.name?.charAt(0)?.toUpperCase() || '?'}
         </div>
         <h2 className="text-xl font-extrabold text-text">{profileData.name}</h2>

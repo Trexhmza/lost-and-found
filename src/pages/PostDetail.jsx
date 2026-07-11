@@ -118,7 +118,7 @@ export default function PostDetail() {
   return (
     <div className="animate-fadeIn">
       {/* Back button */}
-      <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-sm font-semibold text-text-secondary hover:text-primary mb-4 cursor-pointer bg-transparent border-none p-0 transition">
+      <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-sm font-semibold text-text-secondary hover:text-accent mb-4 cursor-pointer bg-transparent border-none p-0 transition">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
         Back
       </button>
@@ -132,10 +132,10 @@ export default function PostDetail() {
             </div>
           </Link>
           <div className="flex-1 min-w-0">
-            <Link to={`/profile/${post.user_id}`} className="text-sm font-bold text-text hover:text-primary transition no-underline">{post.profiles?.name}</Link>
+            <Link to={`/profile/${post.user_id}`} className="text-sm font-bold text-text hover:text-accent transition no-underline">{post.profiles?.name}</Link>
             <div className="text-xs text-text-muted mt-0.5">
               {timeAgo(post.updated_at || post.created_at)}
-              {isEdited && <span className="text-primary-light font-medium ml-1">(edited)</span>}
+              {isEdited && <span className="text-accent font-medium ml-1">(edited)</span>}
             </div>
           </div>
           <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${post.type === 'lost' ? 'badge-lost' : 'badge-found'}`}>
@@ -200,7 +200,7 @@ export default function PostDetail() {
         <div className="flex items-center gap-2 pt-3 border-t border-border">
           <LikeButton postId={id} liked={liked} count={likeCount} onToggle={(l, c) => { setLiked(l); setLikeCount(c) }} />
           {isOwner && likeCount > 0 && (
-            <button onClick={showLikes} className="text-xs font-semibold text-primary hover:underline cursor-pointer bg-transparent border-none">See who liked</button>
+            <button onClick={showLikes} className="text-xs font-semibold text-accent hover:underline cursor-pointer bg-transparent border-none">See who liked</button>
           )}
           <span className="flex items-center gap-1.5 px-2 py-1 text-sm text-text-muted ml-1">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
@@ -237,7 +237,7 @@ export default function PostDetail() {
                 </Link>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
-                    <Link to={`/profile/${c.user_id}`} className="text-xs font-bold text-text hover:text-primary transition no-underline">{c.profiles?.name}</Link>
+                    <Link to={`/profile/${c.user_id}`} className="text-xs font-bold text-text hover:text-accent transition no-underline">{c.profiles?.name}</Link>
                     <span className="text-[10px] text-text-muted">{timeAgo(c.created_at)}</span>
                   </div>
                   <p className="text-sm text-text-secondary leading-relaxed">{c.content}</p>
@@ -263,7 +263,7 @@ export default function PostDetail() {
                   <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/10 to-primary-light/20 flex items-center justify-center text-xs font-bold text-primary overflow-hidden">
                     {l.profiles?.avatar_url ? <img src={l.profiles.avatar_url} className="w-full h-full object-cover" alt="" /> : l.profiles?.name?.charAt(0)?.toUpperCase() || '?'}
                   </div>
-                  <Link to={`/profile/${l.user_id}`} className="text-sm font-semibold text-text hover:text-primary transition no-underline">{l.profiles?.name}</Link>
+                  <Link to={`/profile/${l.user_id}`} className="text-sm font-semibold text-text hover:text-accent transition no-underline">{l.profiles?.name}</Link>
                 </div>
               ))}
             </div>

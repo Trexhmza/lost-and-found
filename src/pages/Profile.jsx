@@ -88,7 +88,7 @@ export default function Profile() {
       <div className="card mb-6 animate-slideUp">
         <div className="flex flex-col items-center mb-5">
           <label className="relative cursor-pointer group">
-            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary/10 to-primary-light/20 flex items-center justify-center text-3xl font-extrabold text-primary overflow-hidden ring-4 ring-primary/10 group-hover:ring-primary/20 transition-all">
+            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-accent/10 to-accent/20 flex items-center justify-center text-3xl font-extrabold text-accent overflow-hidden ring-4 ring-accent/10 group-hover:ring-accent/20 transition-all">
               {avatarUrl ? <img src={avatarUrl} className="w-full h-full object-cover" alt="" /> : profile?.name?.charAt(0)?.toUpperCase() || 'U'}
             </div>
             <div className="absolute bottom-0 right-0 bg-primary text-white rounded-full w-8 h-8 flex items-center justify-center text-sm shadow-lg ring-2 ring-surface group-hover:scale-110 transition-transform">
@@ -122,7 +122,7 @@ export default function Profile() {
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3 mb-6">
         <div className="card text-center py-3">
-          <div className="text-2xl font-extrabold text-primary">{myPosts.length}</div>
+          <div className="text-2xl font-extrabold text-accent">{myPosts.length}</div>
           <div className="text-[11px] font-bold text-text-muted uppercase tracking-wider mt-0.5">Posts</div>
         </div>
         <div className="card text-center py-3">
@@ -153,7 +153,7 @@ export default function Profile() {
                 <p className="text-sm text-text mt-1 line-clamp-1">{post.description}</p>
                 <div className="text-[11px] text-text-muted mt-0.5">
                   {timeAgo(post.updated_at || post.created_at)}
-                  {post.updated_at && post.updated_at !== post.created_at && <span className="text-primary-light font-medium ml-1">(edited)</span>}
+                    {post.updated_at && post.updated_at !== post.created_at && <span className="text-accent font-medium ml-1">(edited)</span>}
                 </div>
               </div>
               {matchedPostIds.has(post.id) ? (

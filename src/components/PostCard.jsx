@@ -87,7 +87,7 @@ export default function PostCard({ post, type, onDelete }) {
             </div>
             <div className="text-xs text-text-muted mt-0.5">
               {timeAgo(post.updated_at || post.created_at)}
-              {isEdited && <span className="text-primary-light font-medium ml-1">(edited)</span>}
+              {isEdited && <span className="text-accent font-medium ml-1">(edited)</span>}
             </div>
           </div>
 

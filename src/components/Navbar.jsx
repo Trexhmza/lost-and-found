@@ -58,17 +58,17 @@ export default function Navbar() {
       <nav className="hidden md:block sticky top-0 z-50 bg-surface/80 backdrop-blur-xl border-b border-border">
         <div className="max-w-5xl mx-auto px-6 flex items-center justify-between h-16">
           <Link to="/lost" className="flex items-center gap-2.5 no-underline">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-primary-light flex items-center justify-center">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-accent to-accent-dark flex items-center justify-center">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             </div>
-            <span className="text-lg font-extrabold text-text tracking-tight">Lost<text fill="currentColor" className="text-primary"> &</text>Found</span>
+            <span className="text-lg font-extrabold text-text tracking-tight">Lost<text fill="currentColor" className="text-accent"> &</text>Found</span>
           </Link>
 
           <div className="flex items-center gap-1">
             {navItems.map(item => {
               const active = location.pathname === item.to
               return (
-                <Link key={item.to} to={item.to} className={`relative flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all no-underline ${active ? 'bg-primary-50 text-primary' : 'text-text-secondary hover:bg-bg-warm hover:text-text'}`}>
+                <Link key={item.to} to={item.to} className={`relative flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all no-underline ${active ? 'bg-accent/10 text-accent' : 'text-text-secondary hover:bg-bg-warm hover:text-text'}`}>
                   {item.label}
                   {item.to === '/matches' && matchCount > 0 && (
                     <span className="absolute -top-1 -right-1 bg-lost text-white text-[10px] font-bold min-w-[18px] h-[18px] rounded-full flex items-center justify-center px-1">{matchCount}</span>
@@ -115,10 +115,10 @@ export default function Navbar() {
       <nav className="md:hidden sticky top-0 z-50 bg-surface/80 backdrop-blur-xl border-b border-border">
         <div className="px-4 flex items-center justify-between h-14">
           <Link to="/lost" className="flex items-center gap-2 no-underline">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary-light flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent to-accent-dark flex items-center justify-center">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             </div>
-            <span className="text-base font-extrabold text-text tracking-tight">Lost<text fill="currentColor" className="text-primary"> &</text>Found</span>
+            <span className="text-base font-extrabold text-text tracking-tight">Lost<text fill="currentColor" className="text-accent"> &</text>Found</span>
           </Link>
           <button onClick={() => navigate('/profile')} className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/10 to-primary-light/20 flex items-center justify-center text-xs font-bold text-primary overflow-hidden ring-2 ring-surface cursor-pointer border-none">
             {profile?.avatar_url ? <img src={profile.avatar_url} className="w-full h-full object-cover" alt="" /> : profile?.name?.charAt(0)?.toUpperCase() || 'U'}
@@ -132,7 +132,7 @@ export default function Navbar() {
           {navItems.map(item => {
             const active = location.pathname === item.to
             return (
-              <Link key={item.to} to={item.to} className={`relative flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition-all no-underline ${active ? 'text-primary' : 'text-text-muted'}`}>
+              <Link key={item.to} to={item.to} className={`relative flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition-all no-underline ${active ? 'text-accent' : 'text-text-muted'}`}>
                 <div className="relative">
                   {item.icon}
                   {item.to === '/matches' && matchCount > 0 && (
@@ -140,7 +140,7 @@ export default function Navbar() {
                   )}
                 </div>
                 <span className="text-[10px] font-semibold">{item.label}</span>
-                {active && <div className="absolute -bottom-1 w-5 h-0.5 rounded-full bg-primary" />}
+                {active && <div className="absolute -bottom-1 w-5 h-0.5 rounded-full bg-accent" />}
               </Link>
             )
           })}

@@ -11,8 +11,8 @@ export default function Login() {
   const [submitting, setSubmitting] = useState(false)
 
   if (loading) return (
-    <div className="flex items-center justify-center min-h-[100dvh] mesh-gradient">
-      <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-primary to-primary-light flex items-center justify-center animate-pulse">
+      <div className="flex items-center justify-center min-h-[100dvh] mesh-gradient">
+      <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-accent to-accent-dark flex items-center justify-center animate-pulse">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       </div>
     </div>
@@ -33,7 +33,7 @@ export default function Login() {
     <div className="min-h-[100dvh] mesh-gradient flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md animate-slideUp">
         <div className="text-center mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-primary-light flex items-center justify-center mx-auto mb-4 shadow-lg shadow-primary/20">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-accent to-accent-dark flex items-center justify-center mx-auto mb-4 shadow-lg shadow-accent/20">
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           </div>
           <h1 className="text-3xl font-extrabold text-text tracking-tight">Lost & Found</h1>
@@ -68,7 +68,7 @@ export default function Login() {
         </div>
 
         <p className="text-sm text-center mt-6 text-text-muted">
-          Don't have an account? <Link to="/signup" className="text-primary font-semibold hover:underline">Sign up</Link>
+          Don't have an account? <Link to="/signup" className="text-accent font-semibold hover:underline">Sign up</Link>
         </p>
       </div>
     </div>

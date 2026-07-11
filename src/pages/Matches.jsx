@@ -142,7 +142,7 @@ export default function Matches() {
       <div className="flex gap-2 mb-5 overflow-x-auto pb-1 -mx-1 px-1">
         {filters.map(f => (
           <button key={f.key} onClick={() => setFilter(f.key)}
-            className={`px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all cursor-pointer border-none ${filter === f.key ? 'bg-primary text-white shadow-md shadow-primary/20' : 'bg-surface text-text-secondary hover:bg-bg-warm border border-border'}`}>
+            className={`px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all cursor-pointer border-none ${filter === f.key ? 'bg-accent text-white shadow-md shadow-accent/20' : 'bg-surface text-text-secondary hover:bg-bg-warm border border-border'}`}>
             {f.label}
             {f.key === 'pending' && <span className="ml-1.5 bg-surface/20 px-1.5 py-0.5 rounded-md text-[10px]">{matches.filter(m => m.status === 'pending').length}</span>}
           </button>
@@ -164,8 +164,8 @@ export default function Matches() {
         </div>
       ) : filtered.length === 0 ? (
         <div className="card text-center py-12 animate-fadeIn">
-          <div className="w-16 h-16 rounded-2xl bg-primary-50 flex items-center justify-center mx-auto mb-4">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-primary"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+          <div className="w-16 h-16 rounded-2xl bg-accent/10 flex items-center justify-center mx-auto mb-4">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-accent"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
           </div>
           <h3 className="font-bold text-text mb-1">No matches yet</h3>
           <p className="text-sm text-text-muted">Post a lost or found item to get AI-powered matches</p>
@@ -191,8 +191,8 @@ export default function Matches() {
                 </div>
 
                 <div className="flex flex-col items-center justify-center gap-1 px-1">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/10 to-primary-light/20 flex items-center justify-center">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-accent/10 to-accent/20 flex items-center justify-center">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-accent"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
                   </div>
                 </div>
 
@@ -218,7 +218,7 @@ export default function Matches() {
               {reasons.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 mb-3">
                   {reasons.map((reason, i) => (
-                    <span key={i} className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary-50 text-primary border border-primary/10">
+                    <span key={i} className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-accent/10 text-accent border border-accent/20">
                       {getReasonIcon(reason)}
                       {reason}
                     </span>
