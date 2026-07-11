@@ -169,15 +169,19 @@ export default function Matches() {
               </div>
 
               {/* Confidence + Tier */}
-              <div className="flex items-center gap-3 mb-3 pt-3 border-t border-border">
-                <span className="text-sm font-bold text-text-secondary">Confidentiality score</span>
-                <span className="text-lg font-extrabold text-primary">{m.confidence}%</span>
-                <div className="confidence-bar flex-1 max-w-[100px]">
-                  <div className={`h-full rounded-full ${tier === 'certain' ? 'bg-amber-400' : tier === 'good' ? 'bg-primary' : 'bg-lost'}`} style={{ width: `${m.confidence}%` }} />
+              <div className="mb-3 pt-3 border-t border-border">
+                <div className="flex items-center gap-3 mb-1.5">
+                  <span className="text-sm font-bold text-text-secondary">Confidentiality score</span>
+                  <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${tierColor}`}>
+                    {tierLabel}
+                  </span>
                 </div>
-                <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${tierColor}`}>
-                  {tierLabel}
-                </span>
+                <div className="flex items-center gap-3">
+                  <span className="text-lg font-extrabold text-primary">{m.confidence}%</span>
+                  <div className={`confidence-bar flex-1 max-w-[120px]`}>
+                    <div className={`h-full rounded-full ${tier === 'certain' ? 'bg-amber-400' : tier === 'good' ? 'bg-primary' : 'bg-lost'}`} style={{ width: `${m.confidence}%` }} />
+                  </div>
+                </div>
               </div>
 
               {/* Actions */}
