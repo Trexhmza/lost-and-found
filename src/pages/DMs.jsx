@@ -77,11 +77,11 @@ export default function DMs() {
     return (
       <div className="flex flex-col" style={{ height: 'calc(100dvh - 140px)' }}>
         {/* Chat header */}
-        <div className="flex items-center gap-3 pb-4 border-b border-border-light mb-4">
+        <div className="flex items-center gap-3 pb-4 border-b border-border mb-4">
           <button onClick={() => { setPage('list'); setSelectedConv(null) }} className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-bg-warm transition cursor-pointer bg-transparent border-none text-text-secondary">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/10 to-primary-light/20 flex items-center justify-center text-sm font-bold text-primary overflow-hidden ring-2 ring-white shrink-0">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/10 to-primary-light/20 flex items-center justify-center text-sm font-bold text-primary overflow-hidden ring-2 ring-surface shrink-0">
             {other?.avatar_url ? <img src={other.avatar_url} className="w-full h-full object-cover" alt="" /> : other?.name?.charAt(0)?.toUpperCase() || '?'}
           </div>
           <div className="flex-1 min-w-0">
@@ -111,7 +111,7 @@ export default function DMs() {
         </div>
 
         {/* Input */}
-        <form onSubmit={e => { e.preventDefault(); sendMessage() }} className="flex gap-2 pt-3 border-t border-border-light">
+        <form onSubmit={e => { e.preventDefault(); sendMessage() }} className="flex gap-2 pt-3 border-t border-border">
           <input value={newMsg} onChange={e => setNewMsg(e.target.value)} placeholder="Type a message..." className="input flex-1" />
           <button type="submit" disabled={!newMsg.trim()} className="btn-primary px-5">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
@@ -149,7 +149,7 @@ export default function DMs() {
             const other = otherUser(conv)
             return (
               <button key={conv.id} onClick={() => openConversation(conv)} className="card w-full text-left cursor-pointer hover:shadow-md transition flex items-center gap-3 animate-slideUp">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary/10 to-primary-light/20 flex items-center justify-center text-sm font-bold text-primary overflow-hidden ring-2 ring-white shrink-0">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary/10 to-primary-light/20 flex items-center justify-center text-sm font-bold text-primary overflow-hidden ring-2 ring-surface shrink-0">
                   {other?.avatar_url ? <img src={other.avatar_url} className="w-full h-full object-cover" alt="" /> : other?.name?.charAt(0)?.toUpperCase() || '?'}
                 </div>
                 <div className="flex-1 min-w-0">

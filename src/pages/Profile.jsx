@@ -91,9 +91,9 @@ export default function Profile() {
             <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary/10 to-primary-light/20 flex items-center justify-center text-3xl font-extrabold text-primary overflow-hidden ring-4 ring-primary/10 group-hover:ring-primary/20 transition-all">
               {avatarUrl ? <img src={avatarUrl} className="w-full h-full object-cover" alt="" /> : profile?.name?.charAt(0)?.toUpperCase() || 'U'}
             </div>
-            <div className="absolute bottom-0 right-0 bg-primary text-white rounded-full w-8 h-8 flex items-center justify-center text-sm shadow-lg ring-2 ring-white group-hover:scale-110 transition-transform">
+            <div className="absolute bottom-0 right-0 bg-primary text-white rounded-full w-8 h-8 flex items-center justify-center text-sm shadow-lg ring-2 ring-surface group-hover:scale-110 transition-transform">
               {uploading ? (
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
               ) : (
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
               )}

@@ -31,9 +31,9 @@ export default function Matches() {
 
     const { data } = await supabase
       .from('matches')
-      .select('*, lost:lost_post_id(id, description, image_url, user_id), found:found_post_id(id, description, image_url, user_id)')
+      .select('*, lost:lost_post_id(id, description, image_url, user_id, category, location), found:found_post_id(id, description, image_url, user_id, category, location)')
       .or(`lost_post_id.in.(${postIds.join(',')}),found_post_id.in.(${postIds.join(',')})`)
-      .order('created_at', { ascending: false })
+      .order('confidence', { ascending: false })
 
     if (data) {
       for (const m of data) {
@@ -86,13 +86,52 @@ export default function Matches() {
     navigate('/dms')
   }
 
-  const filtered = matches.filter(m => filter === 'all' || m.status === filter)
+  function getConfidenceTier(confidence) {
+    if (confidence >= 85) return { color: 'text-found', bg: 'bg-found/10', border: 'border-found/20', label: 'Strong match' }
+    if (confidence >= 70) return { color: 'text-amber-500', bg: 'bg-amber-500/10', border: 'border-amber-500/20', label: 'Good match' }
+    return { color: 'text-lost', bg: 'bg-lost/10', border: 'border-lost/20', label: 'Possible match' }
+  }
+
+  function getReasonIcon(reason) {
+    if (reason.startsWith('Same category')) return (
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+    )
+    if (reason.startsWith('Same location')) return (
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+    )
+    if (reason.includes('photo')) return (
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+    )
+    if (reason.startsWith('Detailed')) return (
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+    )
+    if (reason.startsWith('Brief')) return (
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    )
+    if (reason.startsWith('Same date')) return (
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    )
+    return (
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+    )
+  }
+
+  const filtered = matches.filter(m => {
+    if (filter === 'all') return true
+    if (filter === 'high') return m.confidence >= 85 && m.status !== 'rejected'
+    if (filter === 'medium') return m.confidence >= 70 && m.confidence < 85 && m.status !== 'rejected'
+    if (filter === 'low') return m.confidence >= 30 && m.confidence < 70 && m.status !== 'rejected'
+    return m.status === filter
+  })
 
   const filters = [
     { key: 'all', label: 'All' },
     { key: 'pending', label: 'Pending' },
     { key: 'confirmed', label: 'Confirmed' },
     { key: 'rejected', label: 'Rejected' },
+    { key: 'high', label: 'Strong' },
+    { key: 'medium', label: 'Good' },
+    { key: 'low', label: 'Possible' },
   ]
 
   return (
@@ -103,9 +142,9 @@ export default function Matches() {
       <div className="flex gap-2 mb-5 overflow-x-auto pb-1 -mx-1 px-1">
         {filters.map(f => (
           <button key={f.key} onClick={() => setFilter(f.key)}
-            className={`px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all cursor-pointer border-none ${filter === f.key ? 'bg-primary text-white shadow-md shadow-primary/20' : 'bg-surface text-text-secondary hover:bg-bg-warm border border-border-light'}`}>
+            className={`px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all cursor-pointer border-none ${filter === f.key ? 'bg-primary text-white shadow-md shadow-primary/20' : 'bg-surface text-text-secondary hover:bg-bg-warm border border-border'}`}>
             {f.label}
-            {f.key === 'pending' && <span className="ml-1.5 bg-white/20 px-1.5 py-0.5 rounded-md text-[10px]">{matches.filter(m => m.status === 'pending').length}</span>}
+            {f.key === 'pending' && <span className="ml-1.5 bg-surface/20 px-1.5 py-0.5 rounded-md text-[10px]">{matches.filter(m => m.status === 'pending').length}</span>}
           </button>
         ))}
       </div>
@@ -139,8 +178,8 @@ export default function Matches() {
           const myConfirmed = isLostOwner ? m.lost_confirmed : m.found_confirmed
           const otherConfirmed = isLostOwner ? m.found_confirmed : m.lost_confirmed
 
-          const confColor = m.confidence >= 80 ? 'text-found' : m.confidence >= 70 ? 'text-accent-dark' : 'text-text-muted'
-          const confBg = m.confidence >= 80 ? 'bg-found' : m.confidence >= 70 ? 'bg-accent' : 'bg-border'
+          const tier = getConfidenceTier(m.confidence)
+          const reasons = m.reasons || []
 
           return (
             <div key={m.id} className="card mb-4 animate-slideUp">
@@ -164,16 +203,33 @@ export default function Matches() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between pt-3 border-t border-border-light">
-                <div className="flex items-center gap-3">
-                  <span className={`text-lg font-extrabold ${confColor}`}>{m.confidence}%</span>
-                  <div className="confidence-bar w-20">
-                    <div className={`confidence-bar-fill ${confBg}`} style={{ width: `${m.confidence}%` }} />
-                  </div>
+              {/* Confidence + Tier Badge */}
+              <div className="flex items-center gap-3 mb-3 pt-3 border-t border-border">
+                <span className={`text-lg font-extrabold ${tier.color}`}>{m.confidence}%</span>
+                <div className="confidence-bar w-20 flex-1 max-w-[120px]">
+                  <div className={`h-full rounded-full ${tier.color.replace('text-', 'bg-')}`} style={{ width: `${m.confidence}%` }} />
                 </div>
+                <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${tier.bg} ${tier.color} border ${tier.border}`}>
+                  {tier.label}
+                </span>
+              </div>
 
+              {/* Reason Chips */}
+              {reasons.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mb-3">
+                  {reasons.map((reason, i) => (
+                    <span key={i} className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary-50 text-primary border border-primary/10">
+                      {getReasonIcon(reason)}
+                      {reason}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex items-center justify-between">
                 {m.status === 'pending' && (
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 ml-auto">
                     <button onClick={() => handleConfirm(m.id, isLostOwner ? 'lost' : 'found')} className={`btn-primary text-xs py-2 px-4 ${myConfirmed ? 'opacity-50' : ''}`} disabled={myConfirmed}>
                       {myConfirmed ? 'Waiting...' : 'Confirm'}
                     </button>
@@ -182,7 +238,7 @@ export default function Matches() {
                 )}
 
                 {m.status === 'confirmed' && (
-                  <div className="text-right">
+                  <div className="text-right ml-auto">
                     <span className="inline-flex items-center gap-1.5 text-xs font-bold bg-found-light text-found px-3 py-1.5 rounded-full">
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                       Matched!
@@ -195,7 +251,7 @@ export default function Matches() {
                 )}
 
                 {m.status === 'rejected' && (
-                  <span className="text-xs font-medium text-text-muted">Rejected</span>
+                  <span className="text-xs font-medium text-text-muted ml-auto">Rejected</span>
                 )}
               </div>
             </div>

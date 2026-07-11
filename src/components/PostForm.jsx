@@ -141,9 +141,9 @@ export default function PostForm({ type, onClose, onSuccess, editPost }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={uploading ? undefined : onClose}>
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-fadeIn" />
-      <div className="relative bg-white w-full sm:max-w-lg sm:rounded-2xl rounded-t-2xl max-h-[92vh] overflow-y-auto animate-slideUp" onClick={e => e.stopPropagation()}>
+      <div className="relative bg-surface w-full sm:max-w-lg sm:rounded-2xl rounded-t-2xl max-h-[92vh] overflow-y-auto animate-slideUp" onClick={e => e.stopPropagation()}>
         {uploading && (
-          <div className="absolute inset-0 bg-white/90 backdrop-blur-sm rounded-t-2xl sm:rounded-2xl z-10 flex flex-col items-center justify-center gap-4">
+          <div className="absolute inset-0 bg-surface/90 backdrop-blur-sm rounded-t-2xl sm:rounded-2xl z-10 flex flex-col items-center justify-center gap-4">
             <div className="relative">
               <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
               <div className="absolute inset-0 flex items-center justify-center">
@@ -195,6 +195,13 @@ export default function PostForm({ type, onClose, onSuccess, editPost }) {
             </label>
 
             <textarea required placeholder="Describe the item — what does it look like? Where was it lost/found?" value={description} onChange={e => setDescription(e.target.value)} className="input min-h-[100px]" />
+
+            {!isEditing && description.trim().length < 20 && !image && (
+              <div className="flex items-start gap-2 p-3 rounded-xl bg-primary-50 border border-primary/10 text-xs text-primary font-medium">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                <span>Add details like color, brand, or distinguishing marks for better matching.</span>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <select value={category} onChange={e => setCategory(e.target.value)} className="input">

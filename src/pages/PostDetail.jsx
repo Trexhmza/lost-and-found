@@ -127,7 +127,7 @@ export default function PostDetail() {
         {/* Header */}
         <div className="flex items-center gap-3 mb-4">
           <Link to={`/profile/${post.user_id}`}>
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/10 to-primary-light/20 flex items-center justify-center text-sm font-bold text-primary overflow-hidden ring-2 ring-white">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/10 to-primary-light/20 flex items-center justify-center text-sm font-bold text-primary overflow-hidden ring-2 ring-surface">
               {post.profiles?.avatar_url ? <img src={post.profiles.avatar_url} className="w-full h-full object-cover" alt="" /> : post.profiles?.name?.charAt(0)?.toUpperCase() || '?'}
             </div>
           </Link>
@@ -147,7 +147,7 @@ export default function PostDetail() {
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
               </button>
               {menuOpen && (
-                <div className="absolute right-0 top-full mt-1 bg-white border border-border-light rounded-2xl shadow-xl py-1.5 w-36 z-20 animate-scaleIn">
+                <div className="absolute right-0 top-full mt-1 bg-surface border border-border rounded-2xl shadow-xl py-1.5 w-36 z-20 animate-scaleIn">
                   {!isMatched && (
                     <button onClick={() => { setMenuOpen(false); navigate('/') }} className="flex items-center gap-2.5 w-full text-left px-4 py-2.5 text-sm font-medium text-text-secondary hover:bg-bg-warm transition cursor-pointer bg-transparent border-none">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -197,7 +197,7 @@ export default function PostDetail() {
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-2 pt-3 border-t border-border-light">
+        <div className="flex items-center gap-2 pt-3 border-t border-border">
           <LikeButton postId={id} liked={liked} count={likeCount} onToggle={(l, c) => { setLiked(l); setLikeCount(c) }} />
           {isOwner && likeCount > 0 && (
             <button onClick={showLikes} className="text-xs font-semibold text-primary hover:underline cursor-pointer bg-transparent border-none">See who liked</button>
@@ -252,7 +252,7 @@ export default function PostDetail() {
       {showLikedBy && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setShowLikedBy(false)}>
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-fadeIn" />
-          <div className="relative bg-white w-full sm:w-80 sm:rounded-2xl rounded-t-2xl p-5 animate-slideUp" onClick={e => e.stopPropagation()}>
+          <div className="relative bg-surface w-full sm:w-80 sm:rounded-2xl rounded-t-2xl p-5 animate-slideUp" onClick={e => e.stopPropagation()}>
             <div className="sm:hidden flex justify-center pt-0 pb-3">
               <div className="w-10 h-1 rounded-full bg-border" />
             </div>

@@ -70,7 +70,7 @@ serve(async (req) => {
 
     const oppositeType = type === 'lost' ? 'found' : 'lost'
 
-    // Try pgvector pre-filter first
+    // Try pgvector pre-filter first (top 25 candidates)
     let candidates = await vectorPreFilter(post, oppositeType, textVec, imgVec)
 
     // Fallback: if no vector candidates or embedding failed, fetch all
@@ -91,11 +91,13 @@ serve(async (req) => {
     const matches = []
     for (const opp of candidates) {
       const confidence = await groqMatch(post, opp)
-      if (confidence >= 70) {
+      if (confidence >= 30) {
+        const reasons = computeReasons(post, opp)
         matches.push({
           [type === 'lost' ? 'lost_post_id' : 'found_post_id']: postId,
           [type === 'lost' ? 'found_post_id' : 'lost_post_id']: opp.id,
-          confidence
+          confidence,
+          reasons,
         })
       }
     }
@@ -112,6 +114,42 @@ serve(async (req) => {
     return new Response(err instanceof Error ? err.message : String(err), { status: 500, headers: corsHeaders })
   }
 })
+
+// --- Match Reason Computation (deterministic, no API cost) ---
+
+function computeReasons(postA: any, postB: any): string[] {
+  const reasons: string[] = []
+
+  if (postA.category && postB.category && postA.category === postB.category) {
+    reasons.push(`Same category: ${postA.category}`)
+  }
+
+  if (postA.location && postB.location && postA.location.trim().toLowerCase() === postB.location.trim().toLowerCase()) {
+    reasons.push(`Same location: ${postA.location}`)
+  }
+
+  const hasImgA = !!postA.image_url
+  const hasImgB = !!postB.image_url
+  if (hasImgA && hasImgB) {
+    reasons.push('Both have photos')
+  } else if (hasImgA || hasImgB) {
+    reasons.push('One has a photo')
+  }
+
+  const descLenA = (postA.description?.trim() || '').length
+  const descLenB = (postB.description?.trim() || '').length
+  if (descLenA > 30 && descLenB > 30) {
+    reasons.push('Detailed descriptions')
+  } else if (descLenA < 15 || descLenB < 15) {
+    reasons.push('Brief description')
+  }
+
+  if (postA.date && postB.date && postA.date === postB.date) {
+    reasons.push('Same date')
+  }
+
+  return reasons
+}
 
 // --- Hugging Face Embedding Functions ---
 
@@ -130,7 +168,6 @@ async function getTextEmbedding(text: string): Promise<number[] | null> {
       return null
     }
     const data = await res.json()
-    // gte-small returns [[...]] or [...] depending on input
     const vec = Array.isArray(data[0]) ? data[0] : data
     if (vec.length !== 384) {
       console.error(`HF text embedding wrong dim: ${vec.length}`)
@@ -145,7 +182,6 @@ async function getTextEmbedding(text: string): Promise<number[] | null> {
 
 async function getImageEmbedding(imageUrl: string): Promise<number[] | null> {
   try {
-    // Downscale for faster processing
     const downscaled = imageUrl.replace('/upload/', '/upload/w_224,c_limit,q_60/')
     const imgRes = await fetch(downscaled)
     if (!imgRes.ok) return null
@@ -164,7 +200,6 @@ async function getImageEmbedding(imageUrl: string): Promise<number[] | null> {
       return null
     }
     const data = await res.json()
-    // clip-vit-base-patch32 returns [[...]] with 512 dims
     const vec = Array.isArray(data[0]) ? data[0] : data
     if (vec.length !== 512) {
       console.error(`HF image embedding wrong dim: ${vec.length}`)
@@ -186,20 +221,16 @@ async function vectorPreFilter(
   imgVec: number[] | null,
 ): Promise<any[] | null> {
   try {
-    // Build a combined score using text + image similarity
-    // Use rpc or raw SQL via Supabase
     if (!textVec && !imgVec) return null
 
-    // Strategy: query using whichever vector we have, get top 15 candidates
-    // We'll use a combined cosine similarity approach via raw query
+    // Increased from 15 to 25 candidates
     let rpcArgs: Record<string, any> = {
       p_type: oppositeType,
       p_user_id: post.user_id,
-      p_limit: 15,
+      p_limit: 25,
     }
 
     if (textVec && imgVec) {
-      // Both available: combined query
       rpcArgs.p_text_vec = `[${textVec.join(',')}]`
       rpcArgs.p_img_vec = `[${imgVec.join(',')}]`
       rpcArgs.p_use_both = true
@@ -240,19 +271,31 @@ async function groqMatch(postA: any, postB: any): Promise<number> {
   const content: any[] = []
   const photoCount = (imgA ? 1 : 0) + (imgB ? 1 : 0)
 
-  let text = `You are matching lost & found items. Decide how likely these two posts refer to the SAME physical item. Reply with ONLY a number 0-100 (higher = same item).\n`
+  const descA = postA.description?.trim() || '[no description]'
+  const descB = postB.description?.trim() || '[no description]'
+  const catA = postA.category || 'unknown'
+  const catB = postB.category || 'unknown'
+  const locA = postA.location || 'unknown'
+  const locB = postB.location || 'unknown'
 
-  if (hasDescA) {
-    text += `\nPost A (${postA.type}): "${postA.description}"`
-  } else {
-    text += `\nPost A (${postA.type}): [no description provided]`
-  }
+  let text = `You are matching lost & found items at a university campus. Decide how likely these two posts refer to the SAME physical item.
 
-  if (hasDescB) {
-    text += `\nPost B (${postB.type}): "${postB.description}"`
-  } else {
-    text += `\nPost B (${postB.type}): [no description provided]`
-  }
+Post A (${postA.type}):
+- Description: "${descA}"
+- Category: ${catA}
+- Location: ${locA}
+
+Post B (${postB.type}):
+- Description: "${descB}"
+- Category: ${catB}
+- Location: ${locB}
+
+SCORING RULES:
+- If both descriptions are generic (e.g. "lost phone", "found phone") with NO unique identifying details (no color, no brand, no distinguishing marks), score BELOW 40
+- Same category boosts score 5-10 points
+- Same specific location (building/room, not just "campus") boosts score 5-10 points
+- Detailed descriptions with unique details (color, brand, specific marks) boost score significantly
+- Images are the strongest signal — if images show the same physical item, score HIGH`
 
   if (photoCount === 2) {
     text += `\n\nThe FIRST photo is Post A. The SECOND photo is Post B. Compare both photos and descriptions carefully.`
@@ -262,7 +305,7 @@ async function groqMatch(postA: any, postB: any): Promise<number> {
     text += `\n\nThe attached photo belongs to Post B. Compare it with Post A's description.`
   }
 
-  text += `\nReturn ONLY a number 0-100.`
+  text += `\n\nReturn ONLY a number 0-100.`
   content.push({ type: 'text', text })
 
   if (imgA) content.push({ type: 'image_url', image_url: { url: imgA } })
@@ -297,10 +340,32 @@ async function groqMatch(postA: any, postB: any): Promise<number> {
 async function groqMatchText(postA: any, postB: any): Promise<number> {
   const descA = postA.description?.trim() || '[no description]'
   const descB = postB.description?.trim() || '[no description]'
-  const prompt = `You are matching lost & found items. Compare these two posts and decide match confidence (0-100).
-Post A (${postA.type}): "${descA}"
-Post B (${postB.type}): "${descB}"
-If either post has no description, rely only on what's available. Return ONLY a number 0-100.`
+  const catA = postA.category || 'unknown'
+  const catB = postB.category || 'unknown'
+  const locA = postA.location || 'unknown'
+  const locB = postB.location || 'unknown'
+
+  const prompt = `You are matching lost & found items at a university campus. Decide how likely these two posts refer to the SAME physical item.
+
+Post A (${postA.type}):
+- Description: "${descA}"
+- Category: ${catA}
+- Location: ${locA}
+
+Post B (${postB.type}):
+- Description: "${descB}"
+- Category: ${catB}
+- Location: ${locB}
+
+SCORING RULES:
+- If both descriptions are generic (e.g. "lost phone", "found phone") with NO unique identifying details (no color, no brand, no distinguishing marks), score BELOW 40
+- Same category boosts score 5-10 points
+- Same specific location boosts score 5-10 points
+- Detailed descriptions with unique details boost score significantly
+- If either post has no description, rely only on what's available
+
+Return ONLY a number 0-100.`
+
   for (let i = 0; i < 3; i++) {
     try {
       const res = await fetch(GROQ_URL, {

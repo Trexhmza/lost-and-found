@@ -55,7 +55,7 @@ export default function Navbar() {
   return (
     <>
       {/* Desktop top nav */}
-      <nav className="hidden md:block sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-border-light">
+      <nav className="hidden md:block sticky top-0 z-50 bg-surface/80 backdrop-blur-xl border-b border-border">
         <div className="max-w-5xl mx-auto px-6 flex items-center justify-between h-16">
           <Link to="/lost" className="flex items-center gap-2.5 no-underline">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-primary-light flex items-center justify-center">
@@ -77,9 +77,9 @@ export default function Navbar() {
               )
             })}
 
-            <div className="ml-3 pl-3 border-l border-border-light relative">
+            <div className="ml-3 pl-3 border-l border-border relative">
               <button onClick={() => setMenuOpen(!menuOpen)} className="flex items-center gap-2 cursor-pointer bg-transparent border-none p-0">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/10 to-primary-light/20 flex items-center justify-center text-sm font-bold text-primary overflow-hidden ring-2 ring-white">
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/10 to-primary-light/20 flex items-center justify-center text-sm font-bold text-primary overflow-hidden ring-2 ring-surface">
                   {profile?.avatar_url ? (
                     <img src={profile.avatar_url} className="w-full h-full object-cover" alt="" />
                   ) : (
@@ -90,8 +90,8 @@ export default function Navbar() {
               {menuOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
-                  <div className="absolute right-0 top-full mt-2 bg-white border border-border-light rounded-2xl shadow-xl py-2 w-48 z-50 animate-slideDown">
-                    <div className="px-4 py-3 border-b border-border-light">
+                  <div className="absolute right-0 top-full mt-2 bg-surface border border-border rounded-2xl shadow-xl py-2 w-48 z-50 animate-slideDown">
+                    <div className="px-4 py-3 border-b border-border">
                       <p className="text-sm font-bold text-text truncate">{profile?.name}</p>
                       <p className="text-xs text-text-muted truncate">{profile?.email}</p>
                     </div>
@@ -112,7 +112,7 @@ export default function Navbar() {
       </nav>
 
       {/* Mobile top bar */}
-      <nav className="md:hidden sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-border-light">
+      <nav className="md:hidden sticky top-0 z-50 bg-surface/80 backdrop-blur-xl border-b border-border">
         <div className="px-4 flex items-center justify-between h-14">
           <Link to="/lost" className="flex items-center gap-2 no-underline">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary-light flex items-center justify-center">
@@ -120,7 +120,7 @@ export default function Navbar() {
             </div>
             <span className="text-base font-extrabold text-text tracking-tight">Lost<text fill="currentColor" className="text-primary"> &</text>Found</span>
           </Link>
-          <button onClick={() => navigate('/profile')} className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/10 to-primary-light/20 flex items-center justify-center text-xs font-bold text-primary overflow-hidden ring-2 ring-white cursor-pointer border-none">
+          <button onClick={() => navigate('/profile')} className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/10 to-primary-light/20 flex items-center justify-center text-xs font-bold text-primary overflow-hidden ring-2 ring-surface cursor-pointer border-none">
             {profile?.avatar_url ? <img src={profile.avatar_url} className="w-full h-full object-cover" alt="" /> : profile?.name?.charAt(0)?.toUpperCase() || 'U'}
           </button>
         </div>
