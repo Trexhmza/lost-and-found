@@ -21,6 +21,7 @@ export default function PostDetail() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [isMatched, setIsMatched] = useState(false)
   const [replyTo, setReplyTo] = useState(null)
+  const commentInputRef = useRef(null)
   const menuRef = useRef(null)
 
   useEffect(() => {
@@ -237,7 +238,7 @@ export default function PostDetail() {
               <button type="button" onClick={() => setReplyTo(null)} className="text-text-muted hover:text-text cursor-pointer bg-transparent border-none p-0 ml-1">x</button>
             </div>
           )}
-          <input value={newComment} onChange={e => setNewComment(e.target.value)} placeholder={replyTo ? `Reply to ${replyTo.profiles?.name}...` : 'Write a comment...'} className="input flex-1" />
+          <input ref={commentInputRef} value={newComment} onChange={e => setNewComment(e.target.value)} placeholder={replyTo ? `Reply to ${replyTo.profiles?.name}...` : 'Write a comment...'} className="input flex-1" />
           <button type="submit" disabled={!newComment.trim()} className="btn-primary px-4">Post</button>
         </form>
 
@@ -263,7 +264,7 @@ export default function PostDetail() {
                       {!isDeleted && (
                         <div className="flex items-center gap-3 mt-1.5">
                           {user && (
-                            <button onClick={() => setReplyTo(replyTo?.id === c.id ? null : c)} className="text-[11px] font-semibold text-accent hover:underline cursor-pointer bg-transparent border-none p-0">
+                            <button onClick={() => { setReplyTo(replyTo?.id === c.id ? null : c); setTimeout(() => commentInputRef.current?.focus(), 50) }} className="text-[11px] font-semibold text-accent hover:underline cursor-pointer bg-transparent border-none p-0">
                               Reply
                             </button>
                           )}
