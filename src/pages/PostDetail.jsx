@@ -96,8 +96,8 @@ export default function PostDetail() {
   }
 
   async function deleteComment(c) {
-    await supabase.from('comments').update({ content: 'comment deleted' }).eq('id', c.id)
-    setComments(prev => prev.map(cm => cm.id === c.id ? { ...cm, content: 'comment deleted' } : cm))
+    await supabase.from('comments').delete().eq('id', c.id)
+    setComments(prev => prev.filter(cm => cm.id !== c.id))
   }
 
   async function showLikes() {
@@ -231,7 +231,7 @@ export default function PostDetail() {
       {/* Comments */}
       <div className="card mt-4">
         <h3 className="text-sm font-bold text-text mb-4">Comments</h3>
-        <form onSubmit={handleComment} className="flex gap-2 mb-5">
+        <form onSubmit={handleComment} className="flex flex-wrap gap-2 mb-5">
           {replyTo && (
             <div className="w-full mb-2 text-[11px] text-accent font-medium flex items-center gap-1">
               Replying to {replyTo.profiles?.name}
@@ -248,7 +248,6 @@ export default function PostDetail() {
           <div className="space-y-4">
             {comments.filter(c => !c.parent_id).map(c => {
               const replies = comments.filter(r => r.parent_id === c.id)
-              const isDeleted = c.content === 'comment deleted'
               return (
                 <div key={c.id} className="animate-slideUp">
                   <div className="flex gap-3">
@@ -260,21 +259,19 @@ export default function PostDetail() {
                         <Link to={`/profile/${c.user_id}`} className="text-xs font-bold text-text hover:text-accent transition no-underline">{c.profiles?.name}</Link>
                         <span className="text-[10px] text-text-muted">{timeAgo(c.created_at)}</span>
                       </div>
-                      <p className={`text-sm leading-relaxed ${isDeleted ? 'text-text-muted italic' : 'text-text-secondary'}`}>{c.content}</p>
-                      {!isDeleted && (
-                        <div className="flex items-center gap-3 mt-1.5">
-                          {user && (
-                            <button onClick={() => { setReplyTo(replyTo?.id === c.id ? null : c); setTimeout(() => { commentInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); commentInputRef.current?.focus() }, 100) }} className="text-[11px] font-semibold text-accent hover:underline cursor-pointer bg-transparent border-none p-0">
-                              Reply
-                            </button>
-                          )}
-                          {user?.id === c.user_id && (
-                            <button onClick={() => deleteComment(c)} className="text-[11px] font-semibold text-text-muted hover:text-lost transition cursor-pointer bg-transparent border-none p-0">
-                              Delete
-                            </button>
-                          )}
-                        </div>
-                      )}
+                      <p className="text-sm leading-relaxed text-text-secondary">{c.content}</p>
+                      <div className="flex items-center gap-3 mt-1.5">
+                        {user && (
+                          <button onClick={() => { setReplyTo(replyTo?.id === c.id ? null : c); setTimeout(() => { commentInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); commentInputRef.current?.focus() }, 100) }} className="text-[11px] font-semibold text-accent hover:underline cursor-pointer bg-transparent border-none p-0">
+                            Reply
+                          </button>
+                        )}
+                        {user?.id === c.user_id && (
+                          <button onClick={() => deleteComment(c)} className="text-[11px] font-semibold text-text-muted hover:text-lost transition cursor-pointer bg-transparent border-none p-0">
+                            Delete
+                          </button>
+                        )}
+                      </div>
                       {replyTo?.id === c.id && (
                         <div className="mt-2 text-[11px] text-accent font-medium flex items-center gap-1">
                           Replying to {c.profiles?.name}
@@ -287,7 +284,6 @@ export default function PostDetail() {
                   {replies.length > 0 && (
                     <div className="ml-8 mt-3 space-y-3 border-l-2 border-border pl-4">
                       {replies.map(r => {
-                        const rDeleted = r.content === 'comment deleted'
                         return (
                           <div key={r.id} className="flex gap-3 animate-slideUp">
                             <Link to={`/profile/${r.user_id}`} className="shrink-0">
@@ -298,8 +294,8 @@ export default function PostDetail() {
                                 <Link to={`/profile/${r.user_id}`} className="text-xs font-bold text-text hover:text-accent transition no-underline">{r.profiles?.name}</Link>
                                 <span className="text-[10px] text-text-muted">{timeAgo(r.created_at)}</span>
                               </div>
-                              <p className={`text-sm leading-relaxed ${rDeleted ? 'text-text-muted italic' : 'text-text-secondary'}`}>{r.content}</p>
-                              {!rDeleted && user?.id === r.user_id && (
+                              <p className="text-sm leading-relaxed text-text-secondary">{r.content}</p>
+                              {user?.id === r.user_id && (
                                 <button onClick={() => deleteComment(r)} className="text-[11px] font-semibold text-text-muted hover:text-lost transition cursor-pointer bg-transparent border-none p-0 mt-1">
                                   Delete
                                 </button>
