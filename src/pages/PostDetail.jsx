@@ -252,18 +252,14 @@ export default function PostDetail() {
               return (
                 <div key={c.id} className="animate-slideUp">
                   <div className="flex gap-3">
-                    {!isDeleted && (
-                      <Link to={`/profile/${c.user_id}`} className="shrink-0">
-                        <Avatar src={c.profiles?.avatar_url} name={c.profiles?.name} size="sm" />
-                      </Link>
-                    )}
+                    <Link to={`/profile/${c.user_id}`} className="shrink-0">
+                      <Avatar src={c.profiles?.avatar_url} name={c.profiles?.name} size="sm" />
+                    </Link>
                     <div className="flex-1 min-w-0">
-                      {!isDeleted && (
-                        <div className="flex items-center gap-2 mb-0.5">
-                          <Link to={`/profile/${c.user_id}`} className="text-xs font-bold text-text hover:text-accent transition no-underline">{c.profiles?.name}</Link>
-                          <span className="text-[10px] text-text-muted">{timeAgo(c.created_at)}</span>
-                        </div>
-                      )}
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <Link to={`/profile/${c.user_id}`} className="text-xs font-bold text-text hover:text-accent transition no-underline">{c.profiles?.name}</Link>
+                        <span className="text-[10px] text-text-muted">{timeAgo(c.created_at)}</span>
+                      </div>
                       <p className={`text-sm leading-relaxed ${isDeleted ? 'text-text-muted italic' : 'text-text-secondary'}`}>{c.content}</p>
                       {!isDeleted && (
                         <div className="flex items-center gap-3 mt-1.5">
@@ -294,18 +290,14 @@ export default function PostDetail() {
                         const rDeleted = r.content === 'comment deleted'
                         return (
                           <div key={r.id} className="flex gap-3 animate-slideUp">
-                            {!rDeleted && (
-                              <Link to={`/profile/${r.user_id}`} className="shrink-0">
-                                <Avatar src={r.profiles?.avatar_url} name={r.profiles?.name} size="sm" />
-                              </Link>
-                            )}
+                            <Link to={`/profile/${r.user_id}`} className="shrink-0">
+                              <Avatar src={r.profiles?.avatar_url} name={r.profiles?.name} size="sm" />
+                            </Link>
                             <div className="flex-1 min-w-0">
-                              {!rDeleted && (
-                                <div className="flex items-center gap-2 mb-0.5">
-                                  <Link to={`/profile/${r.user_id}`} className="text-xs font-bold text-text hover:text-accent transition no-underline">{r.profiles?.name}</Link>
-                                  <span className="text-[10px] text-text-muted">{timeAgo(r.created_at)}</span>
-                                </div>
-                              )}
+                              <div className="flex items-center gap-2 mb-0.5">
+                                <Link to={`/profile/${r.user_id}`} className="text-xs font-bold text-text hover:text-accent transition no-underline">{r.profiles?.name}</Link>
+                                <span className="text-[10px] text-text-muted">{timeAgo(r.created_at)}</span>
+                              </div>
                               <p className={`text-sm leading-relaxed ${rDeleted ? 'text-text-muted italic' : 'text-text-secondary'}`}>{r.content}</p>
                               {!rDeleted && user?.id === r.user_id && (
                                 <button onClick={() => deleteComment(r)} className="text-[11px] font-semibold text-text-muted hover:text-lost transition cursor-pointer bg-transparent border-none p-0 mt-1">
