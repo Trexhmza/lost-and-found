@@ -105,8 +105,14 @@ export default function PostForm({ type, onClose, onSuccess, editPost }) {
       } else if (matchRes?.matched > 0) {
         setUploading(false)
         setStatus('')
-        setSuccess(`${matchRes.matched} match${matchRes.matched > 1 ? 'es' : ''} found! Check the Matches tab.`)
-        setTimeout(() => { onSuccess(); onClose() }, 1800)
+        setSuccess(`match${matchRes.matched > 1 ? 'es' : ''} found! Check the Matches tab.`)
+        setTimeout(() => { onSuccess(); onClose() }, 2500)
+        return
+      } else {
+        setUploading(false)
+        setStatus('')
+        setSuccess('no_match')
+        setTimeout(() => { onSuccess(); onClose() }, 2500)
         return
       }
     }
@@ -218,10 +224,16 @@ export default function PostForm({ type, onClose, onSuccess, editPost }) {
                 {error}
               </div>
             )}
-            {success && (
+            {success && success !== 'no_match' && (
               <div className="flex items-center gap-2 p-3 rounded-xl bg-found-light text-found text-sm font-medium">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
                 {success}
+              </div>
+            )}
+            {success === 'no_match' && (
+              <div className="flex items-center gap-2 p-3 rounded-xl bg-surface text-text-muted text-sm font-medium border border-border">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M16 16s-1.5-2-4-2-4 2-4 2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+                No matches found yet. Your post is live — check back later!
               </div>
             )}
 

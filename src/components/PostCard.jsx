@@ -14,7 +14,6 @@ export default function PostCard({ post, type, onDelete }) {
   const [showEdit, setShowEdit] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [isMatched, setIsMatched] = useState(false)
-  const [matchCount, setMatchCount] = useState(0)
   const menuRef = useRef(null)
   const isOwner = user?.id === post.user_id
 
@@ -47,10 +46,9 @@ export default function PostCard({ post, type, onDelete }) {
   async function checkMatchStatus() {
     const { data } = await supabase
       .from('matches')
-      .select('id, confidence')
+      .select('id')
       .or(`lost_post_id.eq.${post.id},found_post_id.eq.${post.id}`)
     setIsMatched(!!data?.length)
-    setMatchCount(data?.length || 0)
   }
 
   async function handleDelete(e) {
@@ -139,20 +137,6 @@ export default function PostCard({ post, type, onDelete }) {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
             {commentCount}
           </span>
-
-          {isOwner && (
-            isMatched ? (
-              <div className="ml-auto flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-found/10 text-found">
-                <span className="text-sm">&#128522;</span>
-                <span className="text-[11px] font-bold">{matchCount} match{matchCount !== 1 ? 'es' : ''}</span>
-              </div>
-            ) : (
-              <div className="ml-auto flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface text-text-muted border border-border">
-                <span className="text-sm">&#128543;</span>
-                <span className="text-[11px] font-medium">No matches</span>
-              </div>
-            )
-          )}
         </div>
       </div>
 
