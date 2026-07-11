@@ -62,7 +62,7 @@ export default function PostForm({ type, onClose, onSuccess, editPost }) {
 
       setStatus('Finding matches...')
       await supabase.functions.invoke('match-items', {
-        body: { postId: editPost.id, type }
+        body: { postId: editPost.id, type, rematch: true }
       }).catch(() => {})
 
       setUploading(false)

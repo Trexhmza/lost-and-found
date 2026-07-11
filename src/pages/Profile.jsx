@@ -9,6 +9,7 @@ export default function Profile() {
   const [bio, setBio] = useState('')
   const [avatarUrl, setAvatarUrl] = useState('')
   const [myPosts, setMyPosts] = useState([])
+  const [matchedPostIds, setMatchedPostIds] = useState(new Set())
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
 
@@ -29,7 +30,25 @@ export default function Profile() {
       .eq('user_id', user.id)
       .eq('status', 'active')
       .order('created_at', { ascending: false })
-    if (data) setMyPosts(data)
+    if (data) {
+      setMyPosts(data)
+      const postIds = data.map(p => p.id)
+      if (postIds.length) {
+        const { data: matches } = await supabase
+          .from('matches')
+          .select('lost_post_id, found_post_id')
+          .or(`lost_post_id.in.(${postIds.join(',')}),found_post_id.in.(${postIds.join(',')})`)
+          .eq('status', 'confirmed')
+        const locked = new Set()
+        if (matches) {
+          for (const m of matches) {
+            locked.add(m.lost_post_id)
+            locked.add(m.found_post_id)
+          }
+        }
+        setMatchedPostIds(locked)
+      }
+    }
   }
 
   async function handleSave() {
@@ -95,7 +114,11 @@ export default function Profile() {
               <p className="text-sm text-gray-700 mt-1 line-clamp-1">{post.description}</p>
               <div className="text-xs text-gray-400 mt-1">{timeAgo(post.updated_at || post.created_at)}{post.updated_at && post.updated_at !== post.created_at ? ' (edited)' : ''}</div>
             </div>
-            <button onClick={() => deletePost(post.id)} className="text-xs text-red-600 hover:underline cursor-pointer">Delete</button>
+            {matchedPostIds.has(post.id) ? (
+              <span className="text-[11px] text-amber-600 font-medium">Locked</span>
+            ) : (
+              <button onClick={() => deletePost(post.id)} className="text-xs text-red-600 hover:underline cursor-pointer">Delete</button>
+            )}
           </div>
         ))
       )}

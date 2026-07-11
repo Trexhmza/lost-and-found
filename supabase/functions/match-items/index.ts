@@ -39,8 +39,13 @@ serve(async (req) => {
       return new Response(JSON.stringify({ cleared: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    const { postId, type } = body
+    const { postId, type, rematch } = body
     if (!postId || !type) return new Response('Missing postId or type', { status: 400, headers: corsHeaders })
+
+    if (rematch) {
+      await supabase.from('matches').delete().eq('lost_post_id', postId).eq('status', 'pending')
+      await supabase.from('matches').delete().eq('found_post_id', postId).eq('status', 'pending')
+    }
 
     const { data: post, error: postErr } = await supabase
       .from('posts').select('*').eq('id', postId).single()

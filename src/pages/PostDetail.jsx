@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useState, useEffect, useRef } from 'react'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import LikeButton from '../components/LikeButton'
@@ -7,6 +7,7 @@ import { timeAgo } from '../utils/constants'
 
 export default function PostDetail() {
   const { id } = useParams()
+  const navigate = useNavigate()
   const { user } = useAuth()
   const [post, setPost] = useState(null)
   const [liked, setLiked] = useState(false)
@@ -16,11 +17,23 @@ export default function PostDetail() {
   const [showLikedBy, setShowLikedBy] = useState(false)
   const [newComment, setNewComment] = useState('')
   const [loading, setLoading] = useState(true)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [isMatched, setIsMatched] = useState(false)
+  const menuRef = useRef(null)
 
   useEffect(() => {
     loadPost()
     loadComments()
   }, [id])
+
+  useEffect(() => {
+    if (!menuOpen) return
+    function handleClick(e) {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [menuOpen])
 
   async function loadPost() {
     const { data } = await supabase
@@ -33,6 +46,7 @@ export default function PostDetail() {
       if (user) {
         const { data: like } = await supabase.from('likes').select('id').eq('post_id', id).eq('user_id', user.id).maybeSingle()
         setLiked(!!like)
+        if (user.id === data.user_id) checkMatchStatus()
       }
       const { count } = await supabase.from('likes').select('*', { count: 'exact', head: true }).eq('post_id', id)
       setLikeCount(count || 0)
@@ -47,6 +61,22 @@ export default function PostDetail() {
       .eq('post_id', id)
       .order('created_at', { ascending: true })
     if (data) setComments(data)
+  }
+
+  async function checkMatchStatus() {
+    const { data } = await supabase
+      .from('matches')
+      .select('id')
+      .or(`lost_post_id.eq.${id},found_post_id.eq.${id}`)
+      .eq('status', 'confirmed')
+      .limit(1)
+    setIsMatched(!!data?.length)
+  }
+
+  async function handleDelete() {
+    setMenuOpen(false)
+    await supabase.from('posts').delete().eq('id', id)
+    navigate(-1)
   }
 
   async function handleComment(e) {
@@ -84,9 +114,22 @@ export default function PostDetail() {
             <Link to={`/profile/${post.user_id}`} className="text-sm font-semibold hover:underline">{post.profiles?.name}</Link>
             <div className="text-xs text-gray-500">{timeAgo(post.updated_at || post.created_at)}{post.updated_at && post.updated_at !== post.created_at ? ' (edited)' : ''}</div>
           </div>
-          <span className={`ml-auto text-xs font-semibold px-2 py-1 rounded-full ${post.type === 'lost' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
+          <span className={`text-xs font-semibold px-2 py-1 rounded-full ${post.type === 'lost' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
             {post.type === 'lost' ? 'Lost' : 'Found'}
           </span>
+          {isOwner && (
+            <div className="relative" ref={menuRef}>
+              <button onClick={() => setMenuOpen(!menuOpen)} className="text-gray-400 hover:text-gray-600 text-lg px-1 cursor-pointer">&hellip;</button>
+              {menuOpen && (
+                <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg py-1 w-32 z-20">
+                  {!isMatched && (
+                    <button onClick={() => { setMenuOpen(false); navigate('/') }} className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-50 cursor-pointer">Edit</button>
+                  )}
+                  <button onClick={handleDelete} className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50 cursor-pointer">Delete</button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {post.image_url && <img src={post.image_url} className="w-full max-h-96 object-contain rounded-lg mb-3 bg-gray-100" />}
@@ -104,6 +147,12 @@ export default function PostDetail() {
           )}
           <span>💬 {comments.length} comments</span>
         </div>
+
+        {isMatched && isOwner && (
+          <div className="mt-2 pt-2 border-t border-gray-100">
+            <span className="text-[11px] text-amber-600 font-medium">Locked — confirmed match active</span>
+          </div>
+        )}
       </div>
 
       <div className="card mt-4">
