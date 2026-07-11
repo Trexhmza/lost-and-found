@@ -81,20 +81,43 @@ serve(async (req) => {
 })
 
 async function groqMatch(postA, postB) {
-  const content: any[] = []
-
-  let text = `You are matching lost & found items. Decide how likely these two posts refer to the SAME physical item. Reply with ONLY a number 0-100 (higher = same item).
-
-Post A (${postA.type}): "${postA.description}"
-Post B (${postB.type}): "${postB.description}"
-`
-  if (postA.image_url) text += `\nThe FIRST photo belongs to Post A.`
-  if (postB.image_url) text += `\nThe SECOND photo belongs to Post B.`
-  text += `\nCompare both the photos and the descriptions. Return ONLY a number 0-100.`
-  content.push({ type: 'text', text })
+  const hasDescA = !!postA.description?.trim()
+  const hasDescB = !!postB.description?.trim()
 
   const imgA = postA.image_url ? await fetchImageB64(downscale(postA.image_url)) : null
   const imgB = postB.image_url ? await fetchImageB64(downscale(postB.image_url)) : null
+
+  if (!hasDescA && !imgA) return 0
+  if (!hasDescB && !imgB) return 0
+
+  const content: any[] = []
+  const photoCount = (imgA ? 1 : 0) + (imgB ? 1 : 0)
+
+  let text = `You are matching lost & found items. Decide how likely these two posts refer to the SAME physical item. Reply with ONLY a number 0-100 (higher = same item).\n`
+
+  if (hasDescA) {
+    text += `\nPost A (${postA.type}): "${postA.description}"`
+  } else {
+    text += `\nPost A (${postA.type}): [no description provided]`
+  }
+
+  if (hasDescB) {
+    text += `\nPost B (${postB.type}): "${postB.description}"`
+  } else {
+    text += `\nPost B (${postB.type}): [no description provided]`
+  }
+
+  if (photoCount === 2) {
+    text += `\n\nThe FIRST photo is Post A. The SECOND photo is Post B. Compare both photos and descriptions carefully.`
+  } else if (imgA) {
+    text += `\n\nThe attached photo belongs to Post A. Compare it with Post B's description.`
+  } else if (imgB) {
+    text += `\n\nThe attached photo belongs to Post B. Compare it with Post A's description.`
+  }
+
+  text += `\nReturn ONLY a number 0-100.`
+  content.push({ type: 'text', text })
+
   if (imgA) content.push({ type: 'image_url', image_url: { url: imgA } })
   if (imgB) content.push({ type: 'image_url', image_url: { url: imgB } })
 
@@ -120,16 +143,17 @@ Post B (${postB.type}): "${postB.description}"
     } catch { await delay(1000 * (i + 1)) }
   }
 
-  // Fallback: text-only if vision path failed
   if (useVision) return await groqMatchText(postA, postB)
   return 0
 }
 
 async function groqMatchText(postA, postB) {
+  const descA = postA.description?.trim() || '[no description]'
+  const descB = postB.description?.trim() || '[no description]'
   const prompt = `You are matching lost & found items. Compare these two posts and decide match confidence (0-100).
-Post A (${postA.type}): "${postA.description}"
-Post B (${postB.type}): "${postB.description}"
-Return ONLY a number 0-100. Just the number.`
+Post A (${postA.type}): "${descA}"
+Post B (${postB.type}): "${descB}"
+If either post has no description, rely only on what's available. Return ONLY a number 0-100.`
   for (let i = 0; i < 3; i++) {
     try {
       const res = await fetch(GROQ_URL, {
